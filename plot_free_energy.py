@@ -25,6 +25,7 @@ for a, c, b, f in zip(alphas, cs, betas, freeEs):
 # -----------------------------
 # 描画
 # -----------------------------
+fs = 20
 for alpha, c_dict in data_dict.items():
     plt.figure()
 
@@ -40,10 +41,12 @@ for alpha, c_dict in data_dict.items():
 
         plt.plot(b_vals, f_vals, label=f"c={c:g}")
 
-    plt.xlabel(r"$\beta$")
-    plt.ylabel("Free Energy")
-    plt.title(rf"$\alpha={alpha:g}$")
-    plt.legend()
+    plt.xlabel(r"$\beta$", fontsize=fs)
+    plt.ylabel("Free Energy", fontsize=fs)
+    plt.title(rf"$\alpha={alpha:g}$", fontsize=fs)
+    plt.legend(fontsize=fs)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
     plt.grid(True)
     plt.tight_layout()
     plt.show()

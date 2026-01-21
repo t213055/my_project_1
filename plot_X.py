@@ -26,6 +26,7 @@ for a, c, b, chi in zip(alphas, cs, betas, chis):
 # -----------------------------
 # 描画
 # -----------------------------
+fs = 20
 for alpha, c_dict in data_dict.items():
     plt.figure()
 
@@ -41,11 +42,13 @@ for alpha, c_dict in data_dict.items():
 
         plt.plot(b_vals, chi_vals, marker='', label=f"c={c:g}")
 
-    plt.xlabel(r"$\beta$")
-    plt.ylabel(r"$\chi$")
+    plt.xlabel(r"$\beta$", fontsize=fs)
+    plt.ylabel(r"$\chi$", fontsize=fs)
     plt.yscale("log")
-    plt.title(rf"$\alpha={alpha:g}$")
-    plt.legend()
+    plt.title(rf"$\alpha={alpha:g}$", fontsize=fs)
+    plt.legend(fontsize=fs)
+    plt.xticks(fontsize=fs)
+    plt.yticks(fontsize=fs)
     plt.grid(True)
     plt.tight_layout()
     plt.show()

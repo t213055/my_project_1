@@ -37,6 +37,7 @@ col = ["q_v", "q_h", "hat_q_v", "hat_q_h", "r_v", "r_h", "hat_r_v", "hat_r_h"]
 # -----------------------------
 # 描画
 # -----------------------------
+fs = 20
 for alpha, c_dict in data_dict.items():
     for c, val_dict in c_dict.items():
         plt.figure()
@@ -49,11 +50,13 @@ for alpha, c_dict in data_dict.items():
             chi_vals = np.array(val_dict[f"chi_{k}"])[idx]
             plt.plot(beta_vals, chi_vals, label=col[k-4])
 
-        plt.xlabel(r"$\beta$")
-        plt.ylabel(r"$\chi$")
+        plt.xlabel(r"$\beta$", fontsize=fs)
+        plt.ylabel(r"$\chi$", fontsize=fs)
         plt.yscale("log")
-        plt.title(rf"$\alpha={alpha:g},\ c={c:g}$")
-        plt.legend()
+        plt.title(rf"$\alpha={alpha:g},\ c={c:g}$", fontsize=fs)
+        plt.legend(fontsize=12)
+        plt.xticks(fontsize=fs)
+        plt.yticks(fontsize=fs)
         plt.grid(True)
         plt.tight_layout()
         plt.show()
