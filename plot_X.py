@@ -6,7 +6,7 @@ from collections import defaultdict
 # データ読み込み
 # -----------------------------
 #data = np.loadtxt("output_reproduction_exp.txt", delimiter=",")
-data = np.loadtxt("output_1_16_1.txt", delimiter=",", comments="#")
+data = np.loadtxt("output_1_25_1.txt", delimiter=",", comments="#")
 # 列を分解
 alphas = data[:, 0]
 cs     = data[:, 1]

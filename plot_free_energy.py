@@ -5,7 +5,7 @@ from collections import defaultdict
 # -----------------------------
 # データ読み込み
 # -----------------------------
-data = np.loadtxt("output_1_15_2.txt", delimiter=",", comments="#")
+data = np.loadtxt("output_1_24_1.txt", delimiter=",", comments="#")
 
 # 列を分解
 alphas = data[:, 0]

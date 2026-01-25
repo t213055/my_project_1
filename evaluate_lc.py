@@ -12,22 +12,25 @@ from scipy.integrate import quad
 import sys
 #while文が無限ループになるのを指定時間で強制終了
 import time
-TIMEOUT_SECONDS = 30
+TIMEOUT_SECONDS = 300
+
 #警告を無視するため
-import warnings
-warnings.filterwarnings(
-    "ignore",
-    category=RuntimeWarning
-)
+#import warnings
+#warnings.filterwarnings(
+#    "ignore",
+#    category=RuntimeWarning
+#)
 
 def sigmoid(a):
     return 1 / (1 + np.exp(-a))
 
-def saddle_point(q, hq, r, hr, tol):
-    times = 0
+def saddle_point(q, hq, r, hr, start_time, tol):
+    iter = 0
+    
     while True:
         q_old, hq_old, r_old, hr_old = (x.copy() for x in (q, hq, r, hr))
 
+        # q, r, hq, hrの値を更新
         q[0] = (b**2 + hq[0])/(hq[0] + s**(-2) - 2*hr[0])**2
         r[0] = (2*hq[0] + s**(-2) - 2*hr[0] + b**2) / (((hq[0] + s**(-2) - 2*hr[0])**2))
 
@@ -39,22 +42,27 @@ def saddle_point(q, hq, r, hr, tol):
 
         hq = beta**2 * T_alpha @ q
         hr = 0.5 * beta**2 * T_alpha @ r
-        times += 1
-
+        
+        #更新回数を加算
+        iter += 1
+        var = hq[0] + s**(-2) - 2*hr[0]
         #分散が正かを判定
-        if hq[0] + s**(-2) - 2*hr[0] <= 0:
+        if var <= 0:
             print("#variance is negative value", end=':')
-            print(hq[0] + s**(-2) - 2*hr[0])
+            print(var)
             #sys.exit()
 
         #収束判定
-        #if (np.linalg.norm(q - q_old) < tol and np.linalg.norm(hq - hq_old) < tol and np.linalg.norm(r - r_old) < tol and np.linalg.norm(hr - hr_old) < tol):
-        if (np.max(np.abs(q - q_old)) < tol and np.max(np.abs(hq - hq_old)) < tol and np.max(np.abs(r - r_old)) and np.max(np.abs(hr - hr_old))):
-            var = hq[0] + s**(-2) - 2*hr[0]
+        if (np.max(np.abs(q - q_old)) < tol and np.max(np.abs(hq - hq_old)) < tol and np.max(np.abs(r - r_old)) < tol and np.max(np.abs(hr - hr_old)) < tol):
             #print(np.linalg.norm(q - q_old)); print(np.linalg.norm(hq - hq_old)); print(np.linalg.norm(r - r_old)); print(np.linalg.norm(hr - hr_old))
             break
 
-    return q, hq, r, hr, var[0], times
+        #時間経過でやり直し or exit
+        if time.time() - start_time >= TIMEOUT_SECONDS:
+            print(f"Timeout at beta={beta}, iter={iter}, {np.max(np.abs(q - q_old))}, {np.max(np.abs(hq - hq_old))}, {np.max(np.abs(r - r_old))}, {np.max(np.abs(hr - hr_old))}, ")
+            sys.exit()
+
+    return q, hq, r, hr, var[0], iter
 
 def free_energy(q, r, hq, hr):#divergent 発散, roundoff error is detected 丸め誤差が検出され、許容誤差を達成できない, algorithm does not converge 丸め誤差が支配
     F_1_1 = ((alpha*beta**2)/(2*(1+alpha)))*(q[0]*q[1]) - ((alpha*beta**2)/(2*(1+alpha)))*(r[0]*r[1])
@@ -209,7 +217,7 @@ def HQ_HR(tol = 1e-8):
         HQ = beta**2 * T_alpha @ Q
         HR = 0.5 * beta**2 * T_alpha @ R
         if any(not np.isfinite(M).all() for M in [Q, R, HQ, HR]):
-            sys.exit("NaN of inf detected")
+            sys.exit("NaN or inf detected")
 
         if (np.max(np.abs(Q - Q_old)) < tol and np.max(np.abs(HQ - HQ_old)) < tol and np.max(np.abs(R - R_old)) < tol and np.max(np.abs(HR - HR_old)) < tol):
             break
@@ -227,36 +235,32 @@ eps = 1e-3
 b = eps
 s = 1
 beta = 0.0
+beta_step = 0.0001
 
 q = 2 * np.ones((2, 1)); hq = 2 * np.ones((2, 1))
 r = 2 * np.ones((2, 1)); hr = 2 * np.ones((2, 1))
 
 
-for alpha in [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]:
+for alpha in [0.5, 1.0, 2.0, 2.5]:
     T_alpha = (1/(1+alpha)) * np.array([[0,alpha],[1,0]])
     hat_T_alpha = (1/(1+alpha)) * np.array([[1,0],[0,alpha]])
 
-    for c in [-eps, -1, -2, -5]:
+    for c in [eps, -2, -5]:
         beta = 0.0
 
         while beta <= 6.0 + 1e-16:
             times_saddle = 0
 
-            #betaの刻み幅を調整
-            if alpha == 2.5:
-                if beta >= 3.0 and beta <= 3.1:
-                    beta += 0.0001
-                else:
-                    beta += 0.1
-            else:
-                beta += 0.1
+            #次のbetaへ
+            beta += beta_step
 
             #鞍点を計算
-            q, hq, r, hr, var, times_saddle = saddle_point(q, hq, r, hr, tol = 1e-6)
+            start_time = time.time()
+            q, hq, r, hr, var, times_saddle = saddle_point(q, hq, r, hr, start_time, tol = 1e-6)
             
             #自由エネルギーを計算
             fn = free_energy(q, hq, r, hr)
 
             #層相関を計算
             X = layer_correlation()
-            print(f"{alpha:.1f},{c:.4f},{beta:.6f},{abs(X[0,1]):.5e},{q[0,0]:.5f},{q[1,0]:.5f},{hq[0,0]:.5f},{hq[1,0]:.5f},{r[0,0]:.5f},{r[1,0]:.5f},{hr[0,0]:.5f},{hr[1,0]:.5f},{var:.5f},{fn:.5f}")
+            print(f"{alpha:.1f},{c:.4f},{beta:.6f},{abs(X[0,1]):.5e},{q[0,0]:.6f},{q[1,0]:.6f},{hq[0,0]:.6f},{hq[1,0]:.6f},{r[0,0]:.6f},{r[1,0]:.6f},{hr[0,0]:.6f},{hr[1,0]:.6f},{var:.5f},{fn:.5f}")
