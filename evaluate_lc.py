@@ -7,6 +7,7 @@ from scipy.special import ndtr       # 標準正規分布の積分
 from scipy.optimize import root      # 非線形方程式の解法
 from scipy.stats import norm
 from scipy.integrate import quad
+from datetime import datetime
 
 #sys.exit()でプログラム全体を終了させる
 import sys
@@ -14,12 +15,48 @@ import sys
 import time
 TIMEOUT_SECONDS = 300
 
+#再開用のパッケージ
+import os
+import csv
+
 #警告を無視するため
 #import warnings
 #warnings.filterwarnings(
 #    "ignore",
 #    category=RuntimeWarning
 #)
+
+def load_last_state(csv_file):
+    if not os.path.exists(csv_file):
+        return None
+    
+    valid_rows = []
+
+    with open(csv_file, "r") as f:
+        reader = csv.reader(f)
+        for row in reader:
+            #空行をスキップ
+            if not row:
+                continue
+            if row[0].strip().startswith("#"):
+                continue
+            valid_rows.append(row)
+
+    if not valid_rows:
+        return None
+
+    last = valid_rows[-1]
+
+    last_alpha = float(last[0])
+    last_c = float(last[1])
+    last_beta = float(last[2])
+
+    q = np.array([[float(last[4])],[float(last[5])]])
+    hq = np.array([[float(last[6])],[float(last[7])]])
+    r = np.array([[float(last[8])],[float(last[9])]])
+    hr = np.array([[float(last[10])],[float(last[11])]])
+
+    return last_alpha, last_c, last_beta, q, hq, r, hr
 
 def sigmoid(a):
     return 1 / (1 + np.exp(-a))
@@ -59,7 +96,8 @@ def saddle_point(q, hq, r, hr, start_time, tol):
 
         #時間経過でやり直し or exit
         if time.time() - start_time >= TIMEOUT_SECONDS:
-            print(f"Timeout at beta={beta}, iter={iter}, {np.max(np.abs(q - q_old))}, {np.max(np.abs(hq - hq_old))}, {np.max(np.abs(r - r_old))}, {np.max(np.abs(hr - hr_old))}, ")
+            now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            print(f"#Timeout at {now_str}, beta={beta}, iter={iter}, {np.max(np.abs(q - q_old))}, {np.max(np.abs(hq - hq_old))}, {np.max(np.abs(r - r_old))}, {np.max(np.abs(hr - hr_old))}, ")
             sys.exit()
 
     return q, hq, r, hr, var[0], iter
@@ -217,7 +255,7 @@ def HQ_HR(tol = 1e-8):
         HQ = beta**2 * T_alpha @ Q
         HR = 0.5 * beta**2 * T_alpha @ R
         if any(not np.isfinite(M).all() for M in [Q, R, HQ, HR]):
-            sys.exit("NaN or inf detected")
+            sys.exit("#NaN or inf detected")
 
         if (np.max(np.abs(Q - Q_old)) < tol and np.max(np.abs(HQ - HQ_old)) < tol and np.max(np.abs(R - R_old)) < tol and np.max(np.abs(HR - HR_old)) < tol):
             break
@@ -237,30 +275,70 @@ s = 1
 beta = 0.0
 beta_step = 0.0001
 
-q = 2 * np.ones((2, 1)); hq = 2 * np.ones((2, 1))
-r = 2 * np.ones((2, 1)); hr = 2 * np.ones((2, 1))
+#print(f"#beta_stepsize : {beta_step:.5f}")
 
+csv_file = "output_2_1_1.txt"
+last_state = load_last_state(csv_file)
+if last_state is not None:
+    last_alpha, last_c, last_beta, q_last, hq_last, r_last, hr_last = last_state
+else:
+    last_alpha = last_c = last_beta = None
+
+start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+print("starts at ",start_time)
+print("last_state :", last_state)
 
 for alpha in [0.5, 1.0, 2.0, 2.5]:
     T_alpha = (1/(1+alpha)) * np.array([[0,alpha],[1,0]])
     hat_T_alpha = (1/(1+alpha)) * np.array([[1,0],[0,alpha]])
 
-    for c in [eps, -2, -5]:
-        beta = 0.0
+    for c in [-2, -5]:
+        if last_alpha is None:
+            beta = 0.0
+            q = 2 * np.ones((2, 1)); hq = 2 * np.ones((2, 1))
+            r = 2 * np.ones((2, 1)); hr = 2 * np.ones((2, 1))
 
-        while beta <= 6.0 + 1e-16:
-            times_saddle = 0
+        elif alpha < last_alpha or (alpha == last_alpha and c < last_c):
+            continue
+
+        elif alpha == last_alpha and c == last_c:
+            beta = last_beta
+            q, hq, r, hr = q_last.copy(), hq_last.copy(), r_last.copy(), hr_last.copy()
+
+        else:
+            beta = 0.0
+            q  = 2 * np.ones((2, 1))
+            hq = 2 * np.ones((2, 1))
+            r  = 2 * np.ones((2, 1))
+            hr = 2 * np.ones((2, 1))
+    
+# -----------------------------------------------------------------
+
+        while beta <= 4.0 + 1e-16:
 
             #次のbetaへ
             beta += beta_step
 
             #鞍点を計算
             start_time = time.time()
-            q, hq, r, hr, var, times_saddle = saddle_point(q, hq, r, hr, start_time, tol = 1e-6)
+            q, hq, r, hr, var, iter_saddle = saddle_point(q, hq, r, hr, start_time, tol = 1e-6)
             
             #自由エネルギーを計算
             fn = free_energy(q, hq, r, hr)
 
             #層相関を計算
             X = layer_correlation()
-            print(f"{alpha:.1f},{c:.4f},{beta:.6f},{abs(X[0,1]):.5e},{q[0,0]:.6f},{q[1,0]:.6f},{hq[0,0]:.6f},{hq[1,0]:.6f},{r[0,0]:.6f},{r[1,0]:.6f},{hr[0,0]:.6f},{hr[1,0]:.6f},{var:.5f},{fn:.5f}")
+            line = (
+                f"{alpha:.1f},{c:.4f},{beta:.6f},{abs(X[0,1]):.5e},"
+                f"{q[0,0]:.6f},{q[1,0]:.6f},"
+                f"{hq[0,0]:.6f},{hq[1,0]:.6f},"
+                f"{r[0,0]:.6f},{r[1,0]:.6f},"
+                f"{hr[0,0]:.6f},{hr[1,0]:.6f},"
+                f"{var:.5f},{fn:.5f},{iter_saddle}"
+            )
+
+            #print(line)
+            #print(f"{alpha:.1f},{c:.4f},{beta:.6f},{abs(X[0,1]):.5e},{q[0,0]:.6f},{q[1,0]:.6f},{hq[0,0]:.6f},{hq[1,0]:.6f},{r[0,0]:.6f},{r[1,0]:.6f},{hr[0,0]:.6f},{hr[1,0]:.6f},{var:.5f},{fn:.5f},{iter_saddle}")
+
+            with open(csv_file, "a") as f:
+                f.write(line + "\n")
