@@ -13,7 +13,7 @@ from datetime import datetime
 import sys
 #while文が無限ループになるのを指定時間で強制終了
 import time
-TIMEOUT_SECONDS = 300
+TIMEOUT_SECONDS = 120
 
 #再開用のパッケージ
 import os
@@ -35,7 +35,7 @@ def load_last_state(csv_file):
     with open(csv_file, "r") as f:
         reader = csv.reader(f)
         for row in reader:
-            #空行をスキップ
+            #空行 "#"で始まる行、をスキップ
             if not row:
                 continue
             if row[0].strip().startswith("#"):
@@ -45,6 +45,7 @@ def load_last_state(csv_file):
     if not valid_rows:
         return None
 
+    #valid_rowsの最後の要素を取り出す
     last = valid_rows[-1]
 
     last_alpha = float(last[0])
@@ -83,22 +84,31 @@ def saddle_point(q, hq, r, hr, start_time, tol):
         #更新回数を加算
         iter += 1
         var = hq[0] + s**(-2) - 2*hr[0]
-        #分散が正かを判定
+        #分散が負の場合、異常終了
         if var <= 0:
-            print("#variance is negative value", end=':')
-            print(var)
-            #sys.exit()
+            var_error = (
+                "#variance is negative value: "
+                f"var={var}, alpha={alpha}, c={c}, beta={beta}"
+            )
+            with open(csv_file, "a") as f:
+                f.write(var_error + "\n")
+            sys.exit(var_error)
+            
 
         #収束判定
         if (np.max(np.abs(q - q_old)) < tol and np.max(np.abs(hq - hq_old)) < tol and np.max(np.abs(r - r_old)) < tol and np.max(np.abs(hr - hr_old)) < tol):
             #print(np.linalg.norm(q - q_old)); print(np.linalg.norm(hq - hq_old)); print(np.linalg.norm(r - r_old)); print(np.linalg.norm(hr - hr_old))
             break
 
-        #時間経過でやり直し or exit
+        #時間経過で異常終了
         if time.time() - start_time >= TIMEOUT_SECONDS:
             now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            print(f"#Timeout at {now_str}, beta={beta}, iter={iter}, {np.max(np.abs(q - q_old))}, {np.max(np.abs(hq - hq_old))}, {np.max(np.abs(r - r_old))}, {np.max(np.abs(hr - hr_old))}, ")
-            sys.exit()
+            timeout_error = (
+                f"#Timeout at {now_str}, beta={beta}, iter={iter}, {np.max(np.abs(q - q_old))}, {np.max(np.abs(hq - hq_old))}, {np.max(np.abs(r - r_old))}, {np.max(np.abs(hr - hr_old))}, "
+            )
+            with open(csv_file, "a") as f:
+                f.write(timeout_error + "\n")
+            sys.exit(timeout_error)
 
     return q, hq, r, hr, var[0], iter
 
@@ -272,12 +282,11 @@ def layer_correlation():
 eps = 1e-3
 b = eps
 s = 1
-beta = 0.0
-beta_step = 0.0001
-
-#print(f"#beta_stepsize : {beta_step:.5f}")
-
-csv_file = "output_2_1_1.txt"
+beta = 0.0000000000000000
+beta_step = 0.0001000000000000
+#beta_step = 0.8100000000000
+#出力ファイルを指定 or 出力ファイルから最終状態を読み込む
+csv_file = "output_2026_2_4.txt"
 last_state = load_last_state(csv_file)
 if last_state is not None:
     last_alpha, last_c, last_beta, q_last, hq_last, r_last, hr_last = last_state
@@ -298,7 +307,7 @@ for alpha in [0.5, 1.0, 2.0, 2.5]:
             q = 2 * np.ones((2, 1)); hq = 2 * np.ones((2, 1))
             r = 2 * np.ones((2, 1)); hr = 2 * np.ones((2, 1))
 
-        elif alpha < last_alpha or (alpha == last_alpha and c < last_c):
+        elif alpha < last_alpha or (alpha == last_alpha and c > last_c):
             continue
 
         elif alpha == last_alpha and c == last_c:
@@ -336,9 +345,7 @@ for alpha in [0.5, 1.0, 2.0, 2.5]:
                 f"{hr[0,0]:.6f},{hr[1,0]:.6f},"
                 f"{var:.5f},{fn:.5f},{iter_saddle}"
             )
-
             #print(line)
-            #print(f"{alpha:.1f},{c:.4f},{beta:.6f},{abs(X[0,1]):.5e},{q[0,0]:.6f},{q[1,0]:.6f},{hq[0,0]:.6f},{hq[1,0]:.6f},{r[0,0]:.6f},{r[1,0]:.6f},{hr[0,0]:.6f},{hr[1,0]:.6f},{var:.5f},{fn:.5f},{iter_saddle}")
-
+            
             with open(csv_file, "a") as f:
                 f.write(line + "\n")
