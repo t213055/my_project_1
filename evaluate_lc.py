@@ -265,6 +265,12 @@ def HQ_HR(tol = 1e-8):
         HQ = beta**2 * T_alpha @ Q
         HR = 0.5 * beta**2 * T_alpha @ R
         if any(not np.isfinite(M).all() for M in [Q, R, HQ, HR]):
+            now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            overflow_error = (
+                f"#overflow is occuered in matmul at {now_str}"
+            )
+            with open(csv_file, "a") as f:
+                f.write(overflow_error + "\n")
             sys.exit("#NaN or inf detected")
 
         if (np.max(np.abs(Q - Q_old)) < tol and np.max(np.abs(HQ - HQ_old)) < tol and np.max(np.abs(R - R_old)) < tol and np.max(np.abs(HR - HR_old)) < tol):
@@ -282,9 +288,9 @@ def layer_correlation():
 eps = 1e-3
 b = eps
 s = 1
-beta = 0.0000000000000000
+beta_ini = 0.0000000000000000
 beta_step = 0.0001000000000000
-#beta_step = 0.8100000000000
+
 #出力ファイルを指定 or 出力ファイルから最終状態を読み込む
 csv_file = "output_2026_2_4.txt"
 last_state = load_last_state(csv_file)
@@ -301,9 +307,9 @@ for alpha in [0.5, 1.0, 2.0, 2.5]:
     T_alpha = (1/(1+alpha)) * np.array([[0,alpha],[1,0]])
     hat_T_alpha = (1/(1+alpha)) * np.array([[1,0],[0,alpha]])
 
-    for c in [-2, -5]:
+    for c in [eps, -2, -5]:
         if last_alpha is None:
-            beta = 0.0
+            beta = beta_ini
             q = 2 * np.ones((2, 1)); hq = 2 * np.ones((2, 1))
             r = 2 * np.ones((2, 1)); hr = 2 * np.ones((2, 1))
 
@@ -324,9 +330,10 @@ for alpha in [0.5, 1.0, 2.0, 2.5]:
 # -----------------------------------------------------------------
 
         while beta <= 4.0 + 1e-16:
-
+        #while beta >= 0.0 + 1e-16:
             #次のbetaへ
             beta += beta_step
+            #beta -= beta_step
 
             #鞍点を計算
             start_time = time.time()
