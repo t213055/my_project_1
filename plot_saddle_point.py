@@ -5,7 +5,7 @@ from collections import defaultdict
 # -----------------------------
 # データ読み込み
 # -----------------------------
-data = np.loadtxt("output_1_26_1.txt", delimiter=",", comments="#")
+data = np.loadtxt("beta_increase.txt", delimiter=",", comments="#")
 
 # 基本列
 alphas = data[:, 0]

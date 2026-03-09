@@ -2,3 +2,6 @@ venv/
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
+
+#dataset
+training_GBRBM/cifar-10*

@@ -92,7 +92,7 @@ def saddle_point(q, hq, r, hr, start_time, tol):
             )
             with open(csv_file, "a") as f:
                 f.write(var_error + "\n")
-            sys.exit(var_error)
+            #sys.exit(var_error)
             
 
         #収束判定
@@ -289,29 +289,37 @@ eps = 1e-3
 b = eps
 s = 1
 beta_ini = 0.0000000000000000
-beta_step = 0.0001000000000000
+#beta_step = 0.005000000000000 #2026/2/7
+beta_step = 0.001000000000000
+#beta_step = 0.100000000000000
+
 
 #出力ファイルを指定 or 出力ファイルから最終状態を読み込む
-csv_file = "output_2026_2_4.txt"
+csv_file = "beta_increase_stepsize0.001.txt"
 last_state = load_last_state(csv_file)
 if last_state is not None:
     last_alpha, last_c, last_beta, q_last, hq_last, r_last, hr_last = last_state
 else:
     last_alpha = last_c = last_beta = None
 
+#開始時刻を取得
 start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 print("starts at ",start_time)
 print("last_state :", last_state)
 
-for alpha in [0.5, 1.0, 2.0, 2.5]:
+#実験開始
+for alpha in [0.5, 1.0, 2.0]:
     T_alpha = (1/(1+alpha)) * np.array([[0,alpha],[1,0]])
     hat_T_alpha = (1/(1+alpha)) * np.array([[1,0],[0,alpha]])
 
     for c in [eps, -2, -5]:
         if last_alpha is None:
             beta = beta_ini
-            q = 2 * np.ones((2, 1)); hq = 2 * np.ones((2, 1))
-            r = 2 * np.ones((2, 1)); hr = 2 * np.ones((2, 1))
+            #q = 2 * np.ones((2, 1)); hq = 2 * np.ones((2, 1))
+            #r = 2 * np.ones((2, 1)); hr = 2 * np.ones((2, 1))
+            q = np.zeros((2, 1)); hq = np.zeros((2, 1))
+            r = np.zeros((2, 1)); hr = np.zeros((2, 1))
+
 
         elif alpha < last_alpha or (alpha == last_alpha and c > last_c):
             continue
@@ -321,20 +329,23 @@ for alpha in [0.5, 1.0, 2.0, 2.5]:
             q, hq, r, hr = q_last.copy(), hq_last.copy(), r_last.copy(), hr_last.copy()
 
         else:
-            beta = 0.0
-            q  = 2 * np.ones((2, 1))
-            hq = 2 * np.ones((2, 1))
-            r  = 2 * np.ones((2, 1))
-            hr = 2 * np.ones((2, 1))
+            beta = beta_ini
+            #q  = 2 * np.ones((2, 1))
+            #hq = 2 * np.ones((2, 1))
+            #r  = 2 * np.ones((2, 1))
+            #hr = 2 * np.ones((2, 1))
+            q = np.zeros((2, 1)); hq = np.zeros((2, 1))
+            r = np.zeros((2, 1)); hr = np.zeros((2, 1))
     
 # -----------------------------------------------------------------
 
         while beta <= 4.0 + 1e-16:
-        #while beta >= 0.0 + 1e-16:
-            #次のbetaへ
             beta += beta_step
-            #beta -= beta_step
 
+        #while beta >= 0.0 + 1e-16:
+            #beta -= beta_step
+            #beta = max(beta, 0.0) #βが負にならないようにクリップ
+            
             #鞍点を計算
             start_time = time.time()
             q, hq, r, hr, var, iter_saddle = saddle_point(q, hq, r, hr, start_time, tol = 1e-6)

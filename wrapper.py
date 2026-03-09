@@ -2,7 +2,7 @@ from pathlib import Path
 import subprocess
 import time
 
-max_retry = 3
+max_retry = 10
 retry = 0
 
 python_exe = Path("venv/Scripts/python.exe")
