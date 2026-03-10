@@ -62,10 +62,10 @@ def visualize_reconstruction(model, v_data, n_images=5):
 def main():
     # --- 1. 設定 ---
     data_folder = "cifar-10-batches-py"
-    n_h = 2048          # 隠れ層のユニット数
+    n_h = 1500          # 隠れ層のユニット数
     lr = 0.001         # 学習率
     batch_size = 64    # ミニバッチサイズ
-    epochs = 50        # 学習回数
+    epochs = 1000        # 学習回数
     
     # --- 2. データの準備 ---
     # とりあえず batch_1 (10,000枚) を使用
