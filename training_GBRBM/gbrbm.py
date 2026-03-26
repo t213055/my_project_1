@@ -65,7 +65,7 @@ class ContrastiveDivergence(Sampler):
 class AIS(Sampler):
     """ 焼きなまし重点サンプリング (後日実装用) """
     def run(self, model, v_start):
-        # 自由エネルギーの計算など、複雑なロジックをここに分離
+        # 自由エネルギーの計算など、複雑なロジックをここに分離 
         pass
 
 # ==========================================
@@ -77,7 +77,7 @@ class GBRBM:
         self.sampler = sampler
         
         # パラメータ (xpを使用することでGPU/CPU共通化)
-        self.W = xp.random.normal(0, 1.78, (n_v, n_h))
+        self.W = xp.random.normal(0, 0.01, (n_v, n_h))
         self.b = xp.ones(n_v) * 0.001   #xp.zeros(n_v)
         self.c = xp.ones(n_h) * 0.001   #xp.zeros(n_h)
         self.gamma = xp.ones(n_v) * xp.log(xp.exp(1.0) - 1.0)
