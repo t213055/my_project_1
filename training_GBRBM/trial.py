@@ -15,13 +15,25 @@ def generate_gmm_toy(n_samples=2000):
 def main():
     # 1. データ準備
     v_train = generate_gmm_toy()
-    
+    print("v_train.shape :", v_train.shape)
+
     # 2. モデル初期化 (2次元入力なので n_v=2)
     # 隠れ層は 8〜16 程度で十分です
     model = GBRBM(n_v=2, n_h=16, 
                   unit_type=BinaryUnit(), 
                   sampler=ContrastiveDivergence(k=1))
-    
+    #print(model.b.shape)
+    #print(model.c.shape)
+    #print(model.W.shape)
+    #print(model.gamma.shape)
+
+    pos = v_train**2 @ (1/model.gamma) + v_train @ model.b + np.log(1 + np.exp(model.c.T + v_train @ model.W)).sum(axis = 1)
+    print("TMP.shape :", pos.shape)
+    pos = pos.mean(axis = 0)
+    print("average :", pos)
+    print("average.shape =", pos.shape)
+
+    """    
     # 3. 学習ループ
     lr = 0.01
     epochs = 50
@@ -61,6 +73,7 @@ def main():
     plt.scatter(v_s[:, 0], v_s[:, 1], alpha=0.3, label="RBM Samples")
     plt.legend()
     plt.show()
+    """
 
 if __name__ == "__main__":
     main()
