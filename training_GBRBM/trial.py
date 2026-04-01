@@ -1,4 +1,5 @@
 import numpy as np
+import itertools
 import matplotlib.pyplot as plt
 from gbrbm import GBRBM, BinaryUnit, ContrastiveDivergence, xp
 
@@ -12,26 +13,56 @@ def generate_gmm_toy(n_samples=2000):
     data = xp.vstack([c1, c2]).astype(xp.float32)
     return data[xp.random.permutation(n_samples)]
 
+def LogLiklihood(v_train, model, n_h):
+    pos = -(v_train**2 @ (0.5/model.get_var())) + v_train @ model.b + np.log(1 + np.exp(model.c.T + v_train @ model.W)).sum(axis = 1)
+    LL_pos = pos.mean(axis = 0)
+    print("LL_pos :", LL_pos)
+
+    #(2,)は行列ではなく、ベクトルであり、@では内積を計算する仕組みになっているため、.Tの転置が無効
+    neg = 0.5*np.log(2*np.pi*model.get_var()).sum(axis = 0) + (0.5*model.b**2) @ model.get_var()
+    print("neg :", neg)
+    print("neg.shape :", neg.shape)
+
+    #隠れ変数の和の計算
+    H_all = np.array(list(itertools.product([0, 1], repeat=n_h)), dtype=np.float32)
+    neg1 = model.W.T @ (model.get_var()*model.b) + model.c
+    neg1 = H_all @ neg1
+    neg2 = (H_all @ (model.get_var()[0,]*model.W[0,].T))**2 + (H_all @ (model.get_var()[1,]*model.W[1,].T))**2
+    neg3 = np.log((neg1 + neg2).sum())
+    LL_neg = neg + neg3
+
+    print("neg1 :", neg1)
+    print("neg2 :", neg2)
+    print("neg3 :", neg3)
+    print("LL_neg :", LL_neg)
+
+    LL = LL_pos - LL_neg
+    return LL
+
+
 def main():
     # 1. データ準備
-    v_train = generate_gmm_toy()
+    #v_train = generate_gmm_toy()
+    v_train = xp.array([[2, 0], [0, -2]], dtype=xp.float32)
+    print("v_train :\n", v_train)
     print("v_train.shape :", v_train.shape)
 
     # 2. モデル初期化 (2次元入力なので n_v=2)
     # 隠れ層は 8〜16 程度で十分です
-    model = GBRBM(n_v=2, n_h=16, 
+    n_v = 2
+    n_h = 3
+    model = GBRBM(n_v=n_v, n_h=n_h, 
                   unit_type=BinaryUnit(), 
                   sampler=ContrastiveDivergence(k=1))
-    #print(model.b.shape)
-    #print(model.c.shape)
-    #print(model.W.shape)
-    #print(model.gamma.shape)
 
-    pos = v_train**2 @ (1/model.gamma) + v_train @ model.b + np.log(1 + np.exp(model.c.T + v_train @ model.W)).sum(axis = 1)
-    print("TMP.shape :", pos.shape)
-    pos = pos.mean(axis = 0)
-    print("average :", pos)
-    print("average.shape =", pos.shape)
+    model.W = np.array([[0.5, -0.5, 0], [0, 0.5, 1.0]])
+    print("b :", model.b, "shape :", model.b.shape)
+    print("c :", model.c, "shape :", model.c.shape)
+    print("W :", model.W, "shape :", model.W.shape)
+    print("sfp(gamma) :", model.get_var(), "shape :", model.gamma.shape)
+
+    print("loglikelihood :", LogLiklihood(v_train, model, n_h))
+
 
     """    
     # 3. 学習ループ
