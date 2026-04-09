@@ -16,25 +16,18 @@ def generate_gmm_toy(n_samples=2000):
 def LogLikelihood(v_train, model, n_h):
     pos = -(v_train**2 @ (0.5/model.get_var())) + v_train @ model.b + np.log(1 + np.exp(model.c.T + v_train @ model.W)).sum(axis = 1)
     LL_pos = pos.mean(axis = 0)
-    #print("LL_pos :", LL_pos)
-
+    
     #(2,)は行列ではなく、ベクトルであり、@では内積を計算する仕組みになっているため、.Tの転置が無効
-    neg = 0.5*np.log(2*np.pi*model.get_var()).sum(axis = 0) + (0.5*model.b**2) @ model.get_var()
-    #print("neg :", neg)
-    #print("neg.shape :", neg.shape)
-
+    neg1 = 0.5*np.log(2*np.pi*model.get_var()).sum(axis = 0) + (0.5*model.b**2) @ model.get_var()
+    
     #隠れ変数の和の計算
     H_all = np.array(list(itertools.product([0, 1], repeat=n_h)), dtype=np.float32)
-    neg1 = model.W.T @ (model.get_var()*model.b) + model.c
-    neg1 = H_all @ neg1
-    neg2 = (H_all @ (model.get_var()[0,]*model.W[0,].T))**2 + (H_all @ (model.get_var()[1,]*model.W[1,].T))**2
-    neg3 = np.log((neg1 + neg2).sum())
-    LL_neg = neg + neg3
-
-    #print("neg1 :", neg1)
-    #print("neg2 :", neg2)
-    #print("neg3 :", neg3)
-    #print("LL_neg :", LL_neg)
+    neg2_1 = model.W.T @ (model.get_var()*model.b) + model.c
+    neg2_1 = (H_all @ neg2_1)
+    neg2_2 = ((model.W @ H_all.T)**2 * 0.5*model.get_var()[:, None]).sum(axis=0)
+    neg2 = np.exp(neg2_1 + neg2_2).sum()
+    neg2 = np.log(neg2)
+    LL_neg = neg1 + neg2
 
     LL = LL_pos - LL_neg
     return LL
@@ -44,30 +37,31 @@ def main():
     # 1. データ準備
     v_train = generate_gmm_toy()
     #v_train = xp.array([[2, 0], [0, -2]], dtype=xp.float32)
-    print("v_train :\n", v_train)
-    print("v_train.shape :", v_train.shape)
+    #print("v_train :\n", v_train)
+    #print("v_train.shape :", v_train.shape)
 
     # 2. モデル初期化 (2次元入力なので n_v=2)
     # 隠れ層は 8〜16 程度で十分です
     n_v = 2
-    n_h = 4
+    n_h = 3
     model = GBRBM(n_v=n_v, n_h=n_h, 
                   unit_type=BinaryUnit(), 
                   sampler=ContrastiveDivergence(k=1))
 
     #model.W = np.array([[0.5, -0.5, 0], [0, 0.5, 1.0]])
-    print("b :", model.b, "shape :", model.b.shape)
-    print("c :", model.c, "shape :", model.c.shape)
-    print("W :", model.W, "shape :", model.W.shape)
-    print("sfp(gamma) :", model.get_var(), "shape :", model.gamma.shape)
+    
+    print("b :", model.b)
+    print("c :", model.c)
+    print("W :\n", model.W)
+    #print("sfp(gamma) :", model.get_var(), "shape :", model.gamma.shape)
 
-    #print("loglikelihood :", LogLiklihood(v_train, model, n_h))
+    print("loglikelihood :", LogLikelihood(v_train, model, n_h))
 
     import matplotlib.pyplot as plt
 
     # 3. 学習ループ
     lr = 0.01
-    epochs = 1000
+    epochs = 50
     batch_size = 20
 
     # --- 【追加】記録用のリストを用意 ---
@@ -100,7 +94,7 @@ def main():
     plt.grid(True)
     plt.legend()
     plt.show()
-"""
+
     # 4. サンプリングによる検証
     print("Generating samples via Gibbs sampling...")
     
@@ -127,6 +121,6 @@ def main():
     plt.scatter(v_s[:, 0], v_s[:, 1], alpha=0.3, label="RBM Samples")
     plt.legend()
     plt.show()
-"""
+
 if __name__ == "__main__":
     main()
