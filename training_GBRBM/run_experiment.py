@@ -1,12 +1,187 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import csv
+from gbrbm import GBRBM, BinaryUnit, ContrastiveDivergence, xp
+
+def generate_gmm_toy(n_samples=2000, n_peaks=2, n_features=2):
+    n_per_class = n_samples // n_peaks
+    data = []
+    centers = [[2.0, 2.0], [-2.0, -2.0], [2.0, -2.0], [-2.0, 2.0], [0.0, 0.0]]
+    
+    for i in range(n_peaks):
+        center = centers[i % len(centers)]
+        c = xp.random.normal(loc=center, scale=0.5, size=(n_per_class, n_features))
+        data.append(c)
+        
+    data = xp.vstack(data).astype(xp.float32)
+    return data[xp.random.permutation(len(data))]
+
+def main():
+    # ==========================================
+    # 実験設定のパラメータ
+    # ==========================================
+    N = 2000
+    n_peaks = 2
+    n_v = 2
+    epochs = 100
+    lr = 0.01
+    batch_size = 20
+    n_trials = 1
+    initial_c = 0.001
+    
+    alphas = [0.5, 1.0, 2.0]
+    beta_max_dict = {0.5: 1.84, 1.0: 1.78, 2.0: 1.78}
+    line_styles = ['--', '-', ':'] 
+    colors = ['r', 'g', 'b']
+    
+    print(f"Generating Dataset: N={N}, Peaks={n_peaks}, Features={n_v}")
+    v_train = generate_gmm_toy(n_samples=N, n_peaks=n_peaks, n_features=n_v)
+    
+    results = {}
+    recorded_epochs = [0] + [e + 1 for e in range(epochs) if (e + 1) % 10 == 0]
+    
+    # ★追加: 各パターンの最終学習モデルによる生成結果とMSEを保存する辞書
+    final_eval_results = {}
+
+    # ==========================================
+    # 実験ループ
+    # ==========================================
+    for i, alpha in enumerate(alphas):
+        n_h = int(n_v * alpha)
+        if n_h < 1: n_h = 1 
+        
+        beta_max = beta_max_dict[alpha]
+        betas = [beta_max / 4, beta_max, 4 * beta_max]
+        
+        for j, beta in enumerate(betas):
+            print(f"\n--- Starting Experiment: α={alpha} (m={n_h}), β={beta:.4f} ---")
+            all_trials_lls = []
+            
+            for trial in range(n_trials):
+                print(f"  Running Trial {trial + 1}/{n_trials} ...", end="\r")
+                
+                model = GBRBM(n_v=n_v, n_h=n_h, 
+                              unit_type=BinaryUnit(), 
+                              sampler=ContrastiveDivergence(k=1),
+                              weight_std=beta)
+                
+                trial_log_likelihoods = []
+                ll_val_initial = model.compute_log_likelihood(v_train)
+                trial_log_likelihoods.append(float(ll_val_initial.get() if hasattr(ll_val_initial, 'get') else ll_val_initial))
+
+                for epoch in range(epochs):
+                    perm = xp.random.permutation(len(v_train))
+                    for batch_idx in range(0, len(v_train), batch_size):
+                        model.update(v_train[perm[batch_idx:batch_idx+batch_size]], lr)
+                    
+                    if (epoch + 1) % 10 == 0:
+                        ll_val = model.compute_log_likelihood(v_train)
+                        trial_log_likelihoods.append(float(ll_val.get() if hasattr(ll_val, 'get') else ll_val))
+
+                all_trials_lls.append(trial_log_likelihoods)
+                
+                # ★追加: 各パターンの最後の試行が終わった直後に、生成データの評価を行う
+                if trial == n_trials - 1:
+                    # モデルを使ってデータを1ステップ再構成 (サンプリング)
+                    v_generated = model.reconstruct(v_train, k=1)
+                    
+                    # MSE (平均二乗誤差) を計算
+                    mse = xp.mean((v_train - v_generated) ** 2)
+                    mse_val = float(mse.get() if hasattr(mse, 'get') else mse)
+                    
+                    # 結果を保存 (プロット用にCPUのNumPy配列に変換しておく)
+                    v_gen_cpu = v_generated.get() if hasattr(v_generated, 'get') else v_generated
+                    final_eval_results[(alpha, beta)] = {'v_gen': v_gen_cpu, 'mse': mse_val}
+            
+            print() 
+            mean_lls = np.mean(all_trials_lls, axis=0)
+            results[(alpha, beta)] = (recorded_epochs, mean_lls)
+
+    # ==========================================
+    # CSV出力
+    # ==========================================
+    csv_filename = "gbrbm_experiment_results_2000epochs_mse.csv"
+    print(f"\nSaving results to {csv_filename} ...")
+    with open(csv_filename, mode='w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        writer.writerow(['alpha', 'c_initial', 'beta', 'epoch', 'mean_log_likelihood'])
+        for (alpha, beta), (eps, lls) in results.items():
+            for epoch_val, ll_val in zip(eps, lls):
+                writer.writerow([alpha, initial_c, beta, epoch_val, ll_val])
+
+    # ==========================================
+    # グラフ描画1: 対数尤度の推移
+    # ==========================================
+    fig1, axes1 = plt.subplots(len(alphas), 1, figsize=(10, 5 * len(alphas)), sharex=True)
+    dataset_info = f"Dataset: N={N}, Peaks={n_peaks}, n_v={n_v} | Averaged over {n_trials} trials\nEpochs={epochs}, LR={lr}, Batch={batch_size}"
+    
+    for i, alpha in enumerate(alphas):
+        ax = axes1[i] if len(alphas) > 1 else axes1
+        color = colors[i] 
+        current_beta_max = beta_max_dict[alpha]
+        betas = [current_beta_max / 4, current_beta_max, 4 * current_beta_max]
+        
+        for j, beta in enumerate(betas):
+            eps, lls = results[(alpha, beta)]
+            ls_idx = j
+            beta_label = ["β_max / 4", "β_max", "4 * β_max"][j]
+            label = f"{beta_label} ({beta:.4f})"
+            ax.plot(eps, lls, label=label, color=color, linestyle=line_styles[ls_idx], marker='o', markersize=4)
+
+        ax.set_title(f"Mean Log Likelihood Progress (α={alpha}, Base β_max={current_beta_max})", fontsize=12)
+        ax.set_ylabel('Mean LL')
+        ax.grid(True)
+        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+
+    axes1[-1].set_xlabel('Epochs', fontsize=12)
+    fig1.suptitle(f'Effect of Weight Initialization on GBRBM Log-Likelihood\n{dataset_info}', fontsize=14)
+    plt.tight_layout(rect=[0, 0, 0.85, 0.95])
+    
+    # ==========================================
+    # グラフ描画2: 生成データと元のデータの視覚的比較 (3x3グリッド)
+    # ==========================================
+    fig2, axes2 = plt.subplots(3, 3, figsize=(12, 12))
+    fig2.suptitle('Original vs Generated Data & Reconstruction MSE (After 2000 Epochs)', fontsize=16)
+    
+    # 元データをCPU側のNumPy配列にしておく
+    v_train_cpu = v_train.get() if hasattr(v_train, 'get') else v_train
+
+    for i, alpha in enumerate(alphas):
+        current_beta_max = beta_max_dict[alpha]
+        betas = [current_beta_max / 4, current_beta_max, 4 * current_beta_max]
+        
+        for j, beta in enumerate(betas):
+            ax = axes2[i, j]
+            v_gen_cpu = final_eval_results[(alpha, beta)]['v_gen']
+            mse_val = final_eval_results[(alpha, beta)]['mse']
+            
+            # 元データ（青）と生成データ（赤）をプロット
+            ax.scatter(v_train_cpu[:, 0], v_train_cpu[:, 1], alpha=0.3, color='blue', label='Original', s=10)
+            ax.scatter(v_gen_cpu[:, 0], v_gen_cpu[:, 1], alpha=0.3, color='red', label='Generated', s=10)
+            
+            beta_label = ["β_max / 4", "β_max", "4 * β_max"][j]
+            ax.set_title(f"α={alpha}, {beta_label}\nMSE: {mse_val:.4f}", fontsize=11)
+            ax.grid(True, linestyle='--', alpha=0.6)
+            
+            # 端のグラフにだけ軸ラベルと凡例をつける
+            if i == 2: ax.set_xlabel('v_1')
+            if j == 0: ax.set_ylabel('v_2')
+            if i == 0 and j == 2: ax.legend(loc='upper right')
+
+    plt.tight_layout()
+    plt.show()
+
+if __name__ == "__main__":
+    main()
+"""
+import numpy as np
+import matplotlib.pyplot as plt
 import csv  # ★追加: CSV出力用のモジュール
 from gbrbm import GBRBM, BinaryUnit, ContrastiveDivergence, xp
 
 def generate_gmm_toy(n_samples=2000, n_peaks=2, n_features=2):
-    """
-    N(サンプル数)と峰の数を指定してGMMデータを生成する
-    """
+   
+    #N(サンプル数)と峰の数を指定してGMMデータを生成する
     n_per_class = n_samples // n_peaks
     data = []
     
@@ -29,7 +204,7 @@ def main():
     n_peaks = 2           # 混合ガウス分布の峰の数
     n_v = 2               # 可視層のサイズ (データの次元数)
     
-    epochs = 1000          # エポック数
+    epochs = 2000          # エポック数
     lr = 0.01             # 学習率
     batch_size = 20       # バッチサイズ
     
@@ -119,7 +294,7 @@ def main():
     # ==========================================
     # 3. CSVファイルへの結果出力 (★追加部分)
     # ==========================================
-    csv_filename = "gbrbm_experiment_results.csv"
+    csv_filename = "gbrbm_experiment_results_2000epochs.csv"
     print(f"\nSaving results to {csv_filename} ...")
     with open(csv_filename, mode='w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
@@ -190,7 +365,7 @@ def main():
 
 if __name__ == "__main__":
     main()
-
+"""
 """
 import numpy as np
 import matplotlib.pyplot as plt

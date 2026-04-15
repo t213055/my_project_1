@@ -65,24 +65,32 @@ def main():
         _, ll_quad = get_closest_beta_data(beta_max * 4.0)
         
         # ==========================================
-    # 3. 差分の計算
-    # ==========================================
+        # 3. 差分の計算
+        # ==========================================
         diff_quarter = ll_base - ll_quarter
         diff_quad = ll_base - ll_quad
         
         # ==========================================
-    # 4. サブプロットへの描画
-    # ==========================================
+        # 4. サブプロットへの描画とスケール・範囲調整
+        # ==========================================
         ax.plot(epochs, diff_quarter, label=r'LL(β_max) - LL(β_max / 4)', marker='o', linestyle='-', color='b')
         ax.plot(epochs, diff_quad, label=r'LL(β_max) - LL(4 * β_max)', marker='s', linestyle='--', color='r')
         
         ax.set_title(f'Log-Likelihood Difference (α={alpha}, Base β_max={beta_max})', fontsize=12)
         ax.set_ylabel('Difference')
         
-        # 指定通り、Y軸をlog10スケールに設定
-        # ※もし差分が負になる(β_maxの尤度の方が低くなる)データがある場合、logスケールでは表示されません。
-        # その場合は 'log' の代わりに 'symlog' (対称対数スケール) を使うか、差分の絶対値を取る必要があります。
-        ax.set_yscale('log') 
+        # ★修正ポイント1: 負の値も扱える symlog (対称対数) スケールに変更
+        # linthreshは0付近の線形スケール領域を定義します。値が小さいほど細かく対数化されます。
+        ax.set_yscale('symlog', linthresh=0.1) 
+        
+        # ★修正ポイント2: 差の最小値から最大値まで確実に収まるようにY軸の範囲を動的に設定
+        min_val = min(np.min(diff_quarter), np.min(diff_quad))
+        max_val = max(np.max(diff_quarter), np.max(diff_quad))
+        
+        # 上下に少しだけ余白（マージン）を持たせる
+        margin = max(abs(max_val), abs(min_val)) * 0.5 
+        if margin == 0: margin = 1.0 # 完全に0だった場合のエラー回避
+        ax.set_ylim(min_val - margin, max_val + margin)
         
         ax.grid(True, which="both", ls="--", alpha=0.7)
         ax.legend(loc='upper right')

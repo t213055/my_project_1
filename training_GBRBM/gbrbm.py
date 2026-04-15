@@ -144,6 +144,20 @@ class GBRBM:
         
         return LL
 
+    # ==========================================
+    # データの再構成（生成）メソッド
+    # ==========================================
+    def reconstruct(self, v, k=1):
+        """
+        元のデータ v を初期値として、k回のギブスサンプリングを行い
+        生成（再構成）されたデータを返す。
+        """
+        vk = v
+        for _ in range(k):
+            _, hk = self.sample_h_given_v(vk)
+            _, vk = self.sample_v_given_h(hk)
+        return vk
+
 """
 import numpy as np
 import matplotlib.pyplot as plt
