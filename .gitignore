@@ -5,3 +5,4 @@ __pycache__/
 
 #dataset
 training_GBRBM/cifar-10*
+*.npy
