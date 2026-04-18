@@ -40,10 +40,14 @@ def LogLikelihood(v_train, model, n_h):
 
 def main():
     # 1. データ準備
-    #v_train = generate_gmm_toy()
-    v_train = xp.array([[2, 0], [0, -2]], dtype=xp.float32)
-    #print("v_train :\n", v_train)
-    #print("v_train.shape :", v_train.shape)
+    #2次元混合ガウスデータセットを作成
+    v_train = generate_gmm_toy()
+    
+    #厳密計算用のデータを作成
+    #v_train = xp.array([[2, 0], [0, -2]], dtype=xp.float32)
+    
+    print("v_train :\n", v_train)
+    print("v_train.shape :", v_train.shape)
 
     # 2. モデル初期化 (2次元入力なので n_v=2)
     # 隠れ層は 8〜16 程度で十分です
