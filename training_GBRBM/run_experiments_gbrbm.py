@@ -19,7 +19,7 @@ def run_experiments():
     # ------------------------------------------
     n_v = 10
     n_trials = 50 #50
-    epochs = 1000 #
+    epochs = 4000 #
     batch_size = 100
     lr = 0.01  # 学習率 (標準的な値)
 
@@ -29,11 +29,11 @@ def run_experiments():
 
     # マトリックス設定 (Teacher nh, Student nh, beta_max)
     experiment_configs = [
-        {"t_nh": 8,  "s_nh": 5,  "beta_max": 1.84},
-        {"t_nh": 15, "s_nh": 10, "beta_max": 1.78},
+        #{"t_nh": 8,  "s_nh": 5,  "beta_max": 1.84},
+        #{"t_nh": 15, "s_nh": 10, "beta_max": 1.78},
         {"t_nh": 30, "s_nh": 20, "beta_max": 1.78},
     ]
-    beta_ratios = [0.25, 1.0, 4.0]
+    beta_ratios = [0.25, 1.0]#, 4.0]
 
     # 保存用ディレクトリの作成
     os.makedirs("results", exist_ok=True)
