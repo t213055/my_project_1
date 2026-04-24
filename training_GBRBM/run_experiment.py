@@ -31,7 +31,7 @@ def main():
     
     alphas = [0.5, 1.0, 2.0]
     beta_max_dict = {0.5: 1.84, 1.0: 1.78, 2.0: 1.78}
-    line_styles = ['--', '-', ':'] 
+    line_styles = ['--', '-', ':']
     colors = ['r', 'g', 'b']
     
     print(f"Generating Dataset: N={N}, Peaks={n_peaks}, Features={n_v}")

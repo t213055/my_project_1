@@ -44,6 +44,7 @@ def plot_combined_results():
         for b_ratio in b_ratios:
             # globを使用して、条件に合致する最新のファイルを検索
             pattern = f"results/ll_snh{s_nh}_beta{b_ratio:.2f}_*.npy"
+            #pattern = f"2000epoch_α=2.0_β=0.25_1.0/ll_snh{s_nh}_beta{b_ratio:.2f}_*.npy"
             files = glob.glob(pattern)
             
             if not files:
