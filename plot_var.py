@@ -5,7 +5,7 @@ from collections import defaultdict
 # -----------------------------
 # データ読み込み
 # -----------------------------
-data = np.loadtxt("output_1_16_1.txt", delimiter=",", comments="#")
+data = np.loadtxt("results_when_hidden_layer_has_binary/beta_decrease_stepsize0.005.txt", delimiter=",", comments="#")
 
 # 列を分解
 alphas = data[:, 0]

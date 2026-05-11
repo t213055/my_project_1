@@ -26,7 +26,7 @@ for a, c, b, chi in zip(alphas, cs, betas, chis):
 # -----------------------------
 # 描画
 # -----------------------------
-fs = 20
+fs = 35
 for alpha, c_dict in data_dict.items():
     plt.figure()
 

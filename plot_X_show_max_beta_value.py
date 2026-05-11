@@ -73,7 +73,7 @@ from collections import defaultdict
 # -----------------------------
 # データ読み込み
 # -----------------------------
-data = np.loadtxt("beta_increase_stepsize0.001.txt", delimiter=",", comments="#")
+data = np.loadtxt("results_when_hidden_layer_has_binary/beta_increase_stepsize0.001.txt", delimiter=",", comments="#")
 
 alphas = data[:, 0]
 cs     = data[:, 1]

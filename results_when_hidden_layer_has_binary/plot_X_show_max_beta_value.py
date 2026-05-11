@@ -73,7 +73,8 @@ from collections import defaultdict
 # -----------------------------
 # データ読み込み
 # -----------------------------
-data = np.loadtxt("beta_increase_stepsize0.001.txt", delimiter=",", comments="#")
+#data = np.loadtxt("beta_increase_stepsize0.001.txt", delimiter=",", comments="#")
+data = np.loadtxt("beta_decrease_stepsize0.001.txt", delimiter=",", comments="#")
 
 alphas = data[:, 0]
 cs     = data[:, 1]
@@ -90,7 +91,7 @@ for a, c, b, chi in zip(alphas, cs, betas, chis):
 # -----------------------------
 # 描画（縦並び）
 # -----------------------------
-fs = 20
+fs = 25
 alpha_keys = sorted(data_dict.keys())
 n_alpha = len(alpha_keys)
 
