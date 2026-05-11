@@ -26,13 +26,13 @@ def generate_and_save_teacher_data():
         
         # 1. 教師モデルの初期化
         # 重み std=1.0, サンプラーは適当で良い（手動で回すため）
-        model = gbrbm.GBRBM(n_v, n_h, gbrbm.BinaryUnit(), gbrbm.ContrastiveDivergence(), weight_std=1.0)
+        model = gbrbm.GBRBM(n_v, n_h, gbrbm.BinaryUnit(), gbrbm.ContrastiveDivergence(), weight_std=1.78)
         
         # 教師の個性を設定 (バイアス)
         model.b = xp.random.normal(0, 0.5, n_v).astype(xp.float32)
         model.c = xp.random.normal(0, 0.5, n_h).astype(xp.float32)
         
-        # 分散のばらつき設定 (N(1.0, 0.5) からサンプリングし、正値を保証)
+        # 可視変数の分散のばらつき設定 (N(1.0, 0.5) からサンプリングし、正値を保証)
         vars_sampled = xp.random.normal(1.0, sigma_dist, n_v).astype(xp.float32)
         vars_sampled = xp.maximum(vars_sampled, 0.1)  # 最小値を 0.1 に制限
         model.gamma = xp.log(xp.exp(vars_sampled) - 1.0) # gammaに変換
