@@ -86,4 +86,4 @@ def plot_combined_results(k=5):
 
 if __name__ == "__main__":
     # ここで k の値を自由に変えられます
-    plot_combined_results(k=5)
+    plot_combined_results(k=10)

@@ -18,25 +18,26 @@ def run_experiments():
     # 1. 実験設定
     # ------------------------------------------
     n_v = 10
-    n_trials = 50 #
-    epochs = 5000 #
+    n_trials = 50 # 実際には 50 などの適切な値を設定
+    epochs = 5000   # 実際には 5000 などの適切な値を設定
     batch_size = 100
-    lr = 0.01  # 学習率 (標準的な値)
+    lr = 0.01
 
-    # 記録するエポックのリストを作成 (0~100は毎回、以後は10ごと)
     log_epochs = list(range(0, 101)) + list(range(110, epochs + 1, 10))
     n_log_points = len(log_epochs)
 
-    # マトリックス設定 (Teacher nh, Student nh, beta_max)
+    # マトリックス設定 (beta_max または beta_min のいずれかを含む)
     experiment_configs = [
-        {"t_nh": 8,  "s_nh": 5,  "beta_max": 1.84}, #α=0.5
-        {"t_nh": 15, "s_nh": 10, "beta_max": 1.78}, #α=1.0
-        {"t_nh": 30, "s_nh": 20, "beta_max": 1.78}, #α=2.0
+        {"t_nh": 8,  "s_nh": 5,  "beta_max": 2.599}, # α=0.5
+        {"t_nh": 8,  "s_nh": 5,  "beta_min": 2.673}, # α=0.5
+        {"t_nh": 15, "s_nh": 10, "beta_max": 2.703}, # α=1.0
+        {"t_nh": 15, "s_nh": 10, "beta_min": 2.704}, # α=1.0
+        {"t_nh": 30, "s_nh": 20, "beta_max": 2.966}, # α=2.0
+        {"t_nh": 30, "s_nh": 20, "beta_min": 3.56},  # α=2.0
     ]
     
-    beta_ratios = [0.25, 1.0, 4.0]
+    beta_ratios = [0.125, 0.25, 1.0, 4.0, 8.0]
 
-    # 保存用ディレクトリの作成
     os.makedirs("results", exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
@@ -46,11 +47,16 @@ def run_experiments():
     for config in experiment_configs:
         t_nh = config["t_nh"]
         s_nh = config["s_nh"]
-        beta_max = config["beta_max"]
         
-        # データのロード
+        # ★ 修正ポイント: beta_max か beta_min かを判定
+        if "beta_max" in config:
+            base_beta = config["beta_max"]
+            beta_type = "max"
+        else:
+            base_beta = config["beta_min"]
+            beta_type = "min"
+        
         data_path = f"data/teacher_nv10_nh{t_nh}_s5000.npy"
-        print(f"\n[{data_path}] Loading data...")
         if not os.path.exists(data_path):
             print(f"Error: {data_path} not found. Skipping.")
             continue
@@ -60,16 +66,15 @@ def run_experiments():
         n_samples = train_data.shape[0]
 
         for b_ratio in beta_ratios:
-            beta_init = beta_max * b_ratio
-            print(f"\n>>> Starting Experiment: Student n_h={s_nh}, beta_init={beta_init:.4f} ({b_ratio} * beta_max)")
+            # 判定した base_beta を使用
+            beta_init = base_beta * b_ratio
+            print(f"\n>>> Exp: Student n_h={s_nh}, Type={beta_type}, beta_init={beta_init:.4f}")
             
-            # 結果保存用の配列 (試行数, 記録ポイント数)
             ll_results = np.zeros((n_trials, n_log_points), dtype=np.float32)
 
             for trial in range(n_trials):
                 start_time = time.time()
                 
-                # 生徒モデルの初期化 (バイアスと分散は gbrbm.py 側で 0.001, 1.0 に設定済)
                 model = gbrbm.GBRBM(
                     n_v=n_v, 
                     n_h=s_nh, 
@@ -79,43 +84,36 @@ def run_experiments():
                 )
                 
                 log_idx = 0
-                
-                # Epoch 0 (学習前) の対数尤度を計算
                 if 0 in log_epochs:
                     ll_0 = model.compute_log_likelihood(train_data)
                     ll_results[trial, log_idx] = float(ll_0)
                     log_idx += 1
 
-                # 学習ループ
                 for epoch in range(1, epochs + 1):
-                    # データをシャッフル
                     indices = xp.random.permutation(n_samples)
                     shuffled_data = train_data[indices]
                     
-                    # ミニバッチ学習
                     for i in range(0, n_samples, batch_size):
                         batch = shuffled_data[i : i + batch_size]
                         model.update(batch, lr)
                     
-                    # 指定エポックで対数尤度を計算
                     if epoch in log_epochs:
                         ll = model.compute_log_likelihood(train_data)
                         ll_results[trial, log_idx] = float(ll)
                         log_idx += 1
                 
-                # GPUメモリの解放 (CuPy使用時のメモリリーク対策)
                 if hasattr(xp, 'get_default_memory_pool'):
                     xp.get_default_memory_pool().free_all_blocks()
 
                 elapsed_time = time.time() - start_time
-                print(f"  Trial {trial+1:02d}/{n_trials} completed in {elapsed_time:.2f}s | Final LL: {ll:.2f}")
+                print(f"  Trial {trial+1:02d}/{n_trials} | LL: {ll_results[trial, -1]:.2f}")
 
-            # 50試行が終わったら、この設定の結果をファイルに保存
-            save_name = f"results/ll_snh{s_nh}_beta{b_ratio:.2f}_{timestamp}.npy"
+            # ★ 修正ポイント: 保存ファイル名に beta_type (max/min) を含める
+            save_name = f"results/ll_snh{s_nh}_{beta_type}_ratio{b_ratio:.3f}_{timestamp}.npy"
             np.save(save_name, ll_results)
-            print(f"Saved results to {save_name}")
+            print(f"Saved: {save_name}")
 
-    print("\nAll experiments finished successfully!")
+    print("\nAll 30 experiments (6 configs * 5 ratios) finished!")
 
 if __name__ == "__main__":
     run_experiments()
