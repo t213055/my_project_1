@@ -1,7 +1,7 @@
 import numpy as np
 import gbrbm
 import os
-
+#
 # Backend check
 try:
     import cupy as cp
