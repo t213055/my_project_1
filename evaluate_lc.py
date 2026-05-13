@@ -285,7 +285,7 @@ def layer_correlation():
     return X
  
 #main
-eps = 1e-3
+eps = 0#1e-3
 b = eps
 s = 1
 beta_ini = 0.0000000000000000
@@ -295,7 +295,7 @@ beta_step = 0.001000000000000
 
 
 #出力ファイルを指定 or 出力ファイルから最終状態を読み込む
-csv_file = "beta_increase_stepsize0.001.txt"
+csv_file = "beta_increase_stepsize0.001_eps=0.txt"
 last_state = load_last_state(csv_file)
 if last_state is not None:
     last_alpha, last_c, last_beta, q_last, hq_last, r_last, hr_last = last_state
