@@ -81,7 +81,7 @@ class GBRBM:
         num_states = 2 ** n_h
         n = cp.arange(num_states, dtype=cp.uint32)[:, None]
         # ビットシフト用の配列
-        shifts = cp.arange(n_h - 1, -1, -1, dtype=cp.uint32)
+        shifts = cp.arange(n_h - 1, -1, -1).astype(cp.uint32)
         # ビット演算で一気に 0/1 の行列を作成
         self._H_all = ((n >> shifts) & 1).astype(cp.float32)
 

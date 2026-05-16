@@ -3,16 +3,12 @@ import gbrbm
 import os
 
 # Backend check
-try:
-    import cupy as cp
-    xp = cp
-except ImportError:
-    xp = np
+import cupy as cp
 
 def generate_and_save_teacher_data():
     # 実験設定
     n_v = 10
-    n_h_list = [8, 15, 30]
+    n_h_list = [15]
     n_samples = 5000
     burn_in = 1000
     thinning = 100
@@ -29,18 +25,20 @@ def generate_and_save_teacher_data():
         model = gbrbm.GBRBM(n_v, n_h, gbrbm.BinaryUnit(), gbrbm.ContrastiveDivergence(), weight_std=2.703)
         
         # 教師の個性を設定 (バイアス)
-        model.b = xp.random.normal(0, 0.5, n_v).astype(xp.float32)
-        model.c = xp.random.normal(0, 0.5, n_h).astype(xp.float32)
+        model.b = cp.random.normal(0, 0.5, n_v).astype(cp.float32)
+        model.c = cp.random.normal(0, 0.5, n_h).astype(cp.float32)
         
         # 可視変数の分散のばらつき設定 (N(1.0, 0.5) からサンプリングし、正値を保証)
-        vars_sampled = xp.random.normal(1.0, sigma_dist, n_v).astype(xp.float32)
-        vars_sampled = xp.maximum(vars_sampled, 0.1)  # 最小値を 0.1 に制限
-        model.gamma = xp.log(xp.exp(vars_sampled) - 1.0) # gammaに変換
+        vars_sampled = cp.random.normal(1.0, sigma_dist, n_v).astype(cp.float32)
+        vars_sampled = cp.maximum(vars_sampled, 0.1)  # 最小値を 0.1 に制限
+        model.gamma = cp.log(cp.exp(vars_sampled) - 1.0) # gammaに変換
         
         # 2. ギブスサンプリングによるデータ生成
-        data_list = []
+
+        # 最初から n_samples行、n_v列のGPU配列を用意しておく
+        raw_data = cp.zeros((n_samples, n_v), dtype=cp.float32)
         # 初期値
-        _, v_current = model.sample_v_given_h(xp.zeros((1, n_h)))
+        _, v_current = model.sample_v_given_h(cp.zeros((1, n_h)))
         
         for i in range(n_samples):
             # 最初は burn_in、次からは thinning 回数回す
@@ -49,12 +47,11 @@ def generate_and_save_teacher_data():
                 _, h = model.sample_h_given_v(v_current)
                 _, v_current = model.sample_v_given_h(h)
             
-            data_list.append(v_current.copy())
+            #用意した箱raw_dataの i行目に直接代入
+            raw_data[i] = v_current
+
             if (i + 1) % 1000 == 0:
                 print(f"  Sample {i+1}/{n_samples} generated.")
-
-        # 結合
-        raw_data = xp.vstack(data_list)
         
         # 3. [0, 1] スケーリング
         v_min = raw_data.min(axis=0)
@@ -63,14 +60,8 @@ def generate_and_save_teacher_data():
         
         # 4. 保存 (NumPy形式に変換して保存)
         filename = f"data/teacher_nv10_nh{n_h}_s5000.npy"
-        
-        # CuPy(GPU)を使っている場合のみ asnumpy で変換
-        if hasattr(xp, 'asnumpy'):
-            save_data = xp.asnumpy(scaled_data)
-        else:
-            save_data = scaled_data
             
-        np.save(filename, save_data)
+        np.save(filename, cp.asnumpy(scaled_data))
         print(f"Saved: {filename}\n")
 
 if __name__ == "__main__":
