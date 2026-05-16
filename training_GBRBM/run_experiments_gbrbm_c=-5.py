@@ -87,7 +87,7 @@ def run_experiments():
                 #0epoch目の対数尤度関数を計算し、ll_resultsに記録
                 if 0 in log_epochs:
                     ll_0 = model.compute_log_likelihood(train_data)
-                    ll_results[trial, log_idx] = float(ll_0)
+                    ll_results[trial, log_idx] = ll_0
                     log_idx += 1
 
                 for epoch in range(1, epochs + 1):
@@ -100,7 +100,7 @@ def run_experiments():
                     
                     if epoch in log_epochs:
                         ll = model.compute_log_likelihood(train_data)
-                        ll_results[trial, log_idx] = float(ll)
+                        ll_results[trial, log_idx] = ll
                         log_idx += 1
                 
                 if hasattr(cp, 'get_default_memory_pool'):
@@ -111,7 +111,7 @@ def run_experiments():
 
             # ★ 修正ポイント: 保存ファイル名に beta_type (max/min) を含める
             save_name = f"results/ll_snh{s_nh}_{beta_type}_ratio{b_ratio:.3f}_{timestamp}.npy"
-            np.save(save_name, ll_results)
+            np.save(save_name, cp.asnumpy(ll_results))
             print(f"Saved: {save_name}")
 
     print("\nAll 24 experiments (6 configs * 4 ratios) finished!")

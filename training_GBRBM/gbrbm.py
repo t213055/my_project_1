@@ -3,13 +3,9 @@ import matplotlib.pyplot as plt
 import itertools 
 
 # ==========================================
-# 1. Backend: CPU/GPU の切り替え抽象化
+# 1. GPU用の計算パッケージのimport
 # ==========================================
-try:
-    import cupy as cp
-    xp = cp
-except ImportError:
-    xp = np
+import cupy as cp
 
 # ==========================================
 # 2. Unit Strategy: 変数の種類 (Binary/Ising)
@@ -24,22 +20,22 @@ class BinaryUnit(UnitType):
     """ {0, 1} """
     @staticmethod
     def activation(x):
-        return 1.0 / (1.0 + xp.exp(-xp.clip(x, -50, 50)))
+        return 1.0 / (1.0 + cp.exp(-cp.clip(x, -50, 50)))
     
     @staticmethod
     def sample(prob):
-        return (xp.random.uniform(size=prob.shape) < prob).astype(xp.float32)
+        return (cp.random.uniform(size=prob.shape) < prob).astype(cp.float32)
 
 class IsingUnit(UnitType):
     """ {-1, 1} """
     @staticmethod
     def activation(x):
-        return xp.tanh(x)
+        return cp.tanh(x)
     
     @staticmethod
     def sample(expected):
         prob_one = (expected + 1.0) / 2.0
-        return 2.0 * (xp.random.uniform(size=prob_one.shape) < prob_one) - 1.0
+        return 2.0 * (cp.random.uniform(size=prob_one.shape) < prob_one) - 1.0
 
 # ==========================================
 # 3. Sampling Strategy: アルゴリズム
@@ -71,32 +67,37 @@ class GBRBM:
         self.sampler = sampler
         
         # パラメータ: 指定された標準偏差(weight_std)で初期化
-        self.W = xp.random.normal(0, weight_std/(xp.sqrt(n_v + n_h)), (n_v, n_h))
-        #print("weight_std:",weight_std, "n_v:",n_v, "n_h:",n_h, "sigma:",weight_std/(xp.sqrt(n_v + n_h)))
-        self.b = xp.ones(n_v) * 0.001
-        #self.c = xp.ones(n_h) * 0.001
+        self.W = cp.random.normal(0, weight_std/(cp.sqrt(n_v + n_h)), (n_v, n_h))
+        #print("weight_std:",weight_std, "n_v:",n_v, "n_h:",n_h, "sigma:",weight_std/(cp.sqrt(n_v + n_h)))
+        self.b = cp.ones(n_v) * 0.001
+        #self.c = cp.ones(n_h) * 0.001
 
         #c=-5に固定した場合の実験用
-        self.c = xp.ones(n_h) * (-5)
+        self.c = cp.ones(n_h) * (-5)
         
-        self.gamma = xp.ones(n_v) * xp.log(xp.exp(1.0) - 1.0)
+        self.gamma = cp.ones(n_v) * cp.log(cp.exp(1.0) - 1.0)
 
-        # ▼ 追加: H_all を保存しておくための変数
-        self._H_all = None
+        # itertoolsではなく、ビットシフトを用いて_H_allを作成する
+        num_states = 2 ** n_h
+        n = cp.arrange(num_states, dtype=cp.uint32)[:, None]
+        # ビットシフト用の配列
+        shifts = cp.arange(n_h - 1, -1, -1, dtype=cp.uint32)
+        # ビット演算で一気に 0/1 の行列を作成
+        self._H_all = ((n >> shifts) & 1).astype(cp.float32)
 
     def sample_h_given_v(self, v):
-        pre_activation = xp.dot(v, self.W) + self.c
+        pre_activation = cp.dot(v, self.W) + self.c
         h_prob = self.unit.activation(pre_activation)
         h_sample = self.unit.sample(h_prob)
         return h_prob, h_sample
 
     def get_var(self):
-        return xp.log(1.0 + xp.exp(xp.clip(self.gamma, -50, 50)))
+        return cp.log(1.0 + cp.exp(cp.clip(self.gamma, -50, 50)))
 
     def sample_v_given_h(self, h):
         sig2 = self.get_var()
-        v_mean = sig2 * (self.b + xp.dot(h, self.W.T))
-        v_sample = xp.random.normal(v_mean, xp.sqrt(sig2))
+        v_mean = sig2 * (self.b + cp.dot(h, self.W.T))
+        v_sample = cp.random.normal(v_mean, cp.sqrt(sig2))
         return v_mean, v_sample
 
     def update(self, v_batch, lr):
@@ -110,20 +111,20 @@ class GBRBM:
         # --- Gradient Calculation ---
         batch_size = v_batch.shape[0]
 
-        db = xp.mean(v_batch, axis=0) - xp.mean(vk, axis=0)
+        db = cp.mean(v_batch, axis=0) - cp.mean(vk, axis=0)
         self.b += lr * db
 
-        dc = xp.mean(h0_prob, axis=0) - xp.mean(hk_prob, axis=0)
+        dc = cp.mean(h0_prob, axis=0) - cp.mean(hk_prob, axis=0)
         self.c += lr * dc
 
-        pos_grad_W = xp.dot(v_batch.T, h0_prob) / batch_size
-        neg_grad_W = xp.dot(vk.T, hk_prob) / batch_size
+        pos_grad_W = cp.dot(v_batch.T, h0_prob) / batch_size
+        neg_grad_W = cp.dot(vk.T, hk_prob) / batch_size
         self.W += lr * (pos_grad_W - neg_grad_W)
 
-        v_sq_mean = xp.mean(v_batch**2, axis=0)
-        vk_sq_mean = xp.mean(vk**2, axis=0)
+        v_sq_mean = cp.mean(v_batch**2, axis=0)
+        vk_sq_mean = cp.mean(vk**2, axis=0)
         sig2 = self.get_var()
-        sigmoid_gamma = 1.0 / (1.0 + xp.exp(-xp.clip(self.gamma, -50, 50)))
+        sigmoid_gamma = 1.0 / (1.0 + cp.exp(-cp.clip(self.gamma, -50, 50)))
         self.gamma += lr * (sigmoid_gamma * (v_sq_mean - vk_sq_mean)) / (2 * sig2**2)
 
     # ==========================================
@@ -132,17 +133,10 @@ class GBRBM:
     def compute_log_likelihood(self, v_train):
         n_h = self.W.shape[1]
         
-        pos = -(v_train**2 @ (0.5/self.get_var())) + v_train @ self.b + xp.log(1 + xp.exp(self.c.T + v_train @ self.W)).sum(axis=1)
+        pos = -(v_train**2 @ (0.5/self.get_var())) + v_train @ self.b + cp.log(1 + cp.exp(self.c.T + v_train @ self.W)).sum(axis=1)
         LL_pos = pos.mean(axis=0)
 
-        neg1 = 0.5*xp.log(2*xp.pi*self.get_var()).sum(axis=0) + (0.5*self.b**2) @ self.get_var()
-        
-        #ここで、itertoolsをCPUで呼び出し、H_allを作成し、H_allをGPUに送っていたためかなり時間がかかっていた
-        #H_all = xp.array(list(itertools.product([0, 1], repeat=n_h)), dtype=xp.float32)
-        #initでH_allの箱を作成し、以下で作成しGPUに保存。以降は毎度H_allを作る必要がなくなる。
-        # ▼ 修正: まだ作られていない場合（最初の1回）だけ作ってGPUに送る
-        if self._H_all is None:
-            self._H_all = xp.array(list(itertools.product([0, 1], repeat=n_h)), dtype=xp.float32)
+        neg1 = 0.5*cp.log(2*cp.pi*self.get_var()).sum(axis=0) + (0.5*self.b**2) @ self.get_var()
         
         # 保存されている H_all を使う（転送ゼロ！）
         H_all = self._H_all
@@ -153,8 +147,8 @@ class GBRBM:
         neg2_2 = ((self.W @ H_all.T)**2 * 0.5*self.get_var()[:, None]).sum(axis=0) 
         
         exponents = neg2_1 + neg2_2
-        max_val = xp.max(exponents)
-        neg2 = max_val + xp.log(xp.exp(exponents - max_val).sum())
+        max_val = cp.max(exponents)
+        neg2 = max_val + cp.log(cp.exp(exponents - max_val).sum())
         
         LL_neg = neg1 + neg2
         LL = LL_pos - LL_neg
