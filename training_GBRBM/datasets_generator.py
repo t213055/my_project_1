@@ -26,7 +26,7 @@ def generate_and_save_teacher_data():
         
         # 1. 教師モデルの初期化
         # 重み std=1.0, サンプラーは適当で良い（手動で回すため）
-        model = gbrbm.GBRBM(n_v, n_h, gbrbm.BinaryUnit(), gbrbm.ContrastiveDivergence(), weight_std=1.78)
+        model = gbrbm.GBRBM(n_v, n_h, gbrbm.BinaryUnit(), gbrbm.ContrastiveDivergence(), weight_std=2.703)
         
         # 教師の個性を設定 (バイアス)
         model.b = xp.random.normal(0, 0.5, n_v).astype(xp.float32)

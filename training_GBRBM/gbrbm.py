@@ -79,7 +79,7 @@ class GBRBM:
 
         # itertoolsではなく、ビットシフトを用いて_H_allを作成する
         num_states = 2 ** n_h
-        n = cp.arrange(num_states, dtype=cp.uint32)[:, None]
+        n = cp.arange(num_states, dtype=cp.uint32)[:, None]
         # ビットシフト用の配列
         shifts = cp.arange(n_h - 1, -1, -1, dtype=cp.uint32)
         # ビット演算で一気に 0/1 の行列を作成
