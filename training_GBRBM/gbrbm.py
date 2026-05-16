@@ -73,11 +73,16 @@ class GBRBM:
         # パラメータ: 指定された標準偏差(weight_std)で初期化
         self.W = xp.random.normal(0, weight_std/(xp.sqrt(n_v + n_h)), (n_v, n_h))
         #print("weight_std:",weight_std, "n_v:",n_v, "n_h:",n_h, "sigma:",weight_std/(xp.sqrt(n_v + n_h)))
-        #self.W = xp.random.normal(0, weight_std, (n_v, n_h)) 
         self.b = xp.ones(n_v) * 0.001
         #self.c = xp.ones(n_h) * 0.001
+
+        #c=-5に固定した場合の実験用
         self.c = xp.ones(n_h) * (-5)
+        
         self.gamma = xp.ones(n_v) * xp.log(xp.exp(1.0) - 1.0)
+
+        # ▼ 追加: H_all を保存しておくための変数
+        self._H_all = None
 
     def sample_h_given_v(self, v):
         pre_activation = xp.dot(v, self.W) + self.c
@@ -132,7 +137,16 @@ class GBRBM:
 
         neg1 = 0.5*xp.log(2*xp.pi*self.get_var()).sum(axis=0) + (0.5*self.b**2) @ self.get_var()
         
-        H_all = xp.array(list(itertools.product([0, 1], repeat=n_h)), dtype=xp.float32)
+        #ここで、itertoolsをCPUで呼び出し、H_allを作成し、H_allをGPUに送っていたためかなり時間がかかっていた
+        #H_all = xp.array(list(itertools.product([0, 1], repeat=n_h)), dtype=xp.float32)
+        #initでH_allの箱を作成し、以下で作成しGPUに保存。以降は毎度H_allを作る必要がなくなる。
+        # ▼ 修正: まだ作られていない場合（最初の1回）だけ作ってGPUに送る
+        if self._H_all is None:
+            self._H_all = xp.array(list(itertools.product([0, 1], repeat=n_h)), dtype=xp.float32)
+        
+        # 保存されている H_all を使う（転送ゼロ！）
+        H_all = self._H_all
+        
         neg2_1 = self.W.T @ (self.get_var()*self.b) + self.c
         neg2_1 = (H_all @ neg2_1) 
         

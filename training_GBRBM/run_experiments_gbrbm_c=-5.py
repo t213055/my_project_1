@@ -18,8 +18,8 @@ def run_experiments():
     # 1. 実験設定
     # ------------------------------------------
     n_v = 10
-    n_trials = 50 # 実際には 50 などの適切な値を設定
-    epochs = 5000   # 実際には 5000 などの適切な値を設定
+    n_trials = 1 # 実際には 50 などの適切な値を設定
+    epochs = 10   # 実際には 5000 などの適切な値を設定
     batch_size = 100
     lr = 0.01
 
@@ -28,15 +28,15 @@ def run_experiments():
 
     # マトリックス設定 (beta_max または beta_min のいずれかを含む)
     experiment_configs = [
-        {"t_nh": 8,  "s_nh": 5,  "beta_max": 2.599}, # α=0.5
-        {"t_nh": 8,  "s_nh": 5,  "beta_min": 2.673}, # α=0.5
+        #{"t_nh": 8,  "s_nh": 5,  "beta_max": 2.599}, # α=0.5
+        #{"t_nh": 8,  "s_nh": 5,  "beta_min": 2.673}, # α=0.5
         {"t_nh": 15, "s_nh": 10, "beta_max": 2.703}, # α=1.0
         {"t_nh": 15, "s_nh": 10, "beta_min": 2.704}, # α=1.0
-        {"t_nh": 30, "s_nh": 20, "beta_max": 2.966}, # α=2.0
-        {"t_nh": 30, "s_nh": 20, "beta_min": 3.56},  # α=2.0
+        #{"t_nh": 30, "s_nh": 20, "beta_max": 2.966}, # α=2.0
+        #{"t_nh": 30, "s_nh": 20, "beta_min": 3.56},  # α=2.0
     ]
     
-    beta_ratios = [0.125, 0.25, 1.0, 4.0, 8.0]
+    beta_ratios = [0.25, 1.0, 4.0, 8.0]
 
     os.makedirs("results", exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
@@ -106,14 +106,14 @@ def run_experiments():
                     xp.get_default_memory_pool().free_all_blocks()
 
                 elapsed_time = time.time() - start_time
-                print(f"  Trial {trial+1:02d}/{n_trials} | LL: {ll_results[trial, -1]:.2f}")
+                print(f"  Trial {trial+1:02d}/{n_trials} completed in {elapsed_time:.2f}s | LL: {ll_results[trial, -1]:.2f}")
 
             # ★ 修正ポイント: 保存ファイル名に beta_type (max/min) を含める
             save_name = f"results/ll_snh{s_nh}_{beta_type}_ratio{b_ratio:.3f}_{timestamp}.npy"
             np.save(save_name, ll_results)
             print(f"Saved: {save_name}")
 
-    print("\nAll 30 experiments (6 configs * 5 ratios) finished!")
+    print("\nAll 24 experiments (6 configs * 4 ratios) finished!")
 
 if __name__ == "__main__":
     run_experiments()
