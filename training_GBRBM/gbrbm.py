@@ -67,15 +67,6 @@ class GBRBM:
         self.sampler = sampler
         
         # パラメータ: 指定された標準偏差(weight_std)で初期化
-<<<<<<< HEAD
-        self.W = xp.random.normal(0, weight_std/(xp.sqrt(n_v + n_h)), (n_v, n_h))
-        #print("weight_std:",weight_std, "n_v:",n_v, "n_h:",n_h, "sigma:",weight_std/(xp.sqrt(n_v + n_h)))
-        #self.W = xp.random.normal(0, weight_std, (n_v, n_h)) 
-        self.b = xp.ones(n_v) * 0.001
-        self.c = xp.ones(n_h) * 0.001
-        #self.c = xp.ones(n_h) * (-5)
-        self.gamma = xp.ones(n_v) * xp.log(xp.exp(1.0) - 1.0)
-=======
         self.W = cp.random.normal(0, weight_std/(cp.sqrt(n_v + n_h)), (n_v, n_h))
         #print("weight_std:",weight_std, "n_v:",n_v, "n_h:",n_h, "sigma:",weight_std/(cp.sqrt(n_v + n_h)))
         self.b = cp.ones(n_v) * 0.001
@@ -93,7 +84,6 @@ class GBRBM:
         shifts = cp.arange(n_h - 1, -1, -1).astype(cp.uint32)
         # ビット演算で一気に 0/1 の行列を作成
         self._H_all = ((n >> shifts) & 1).astype(cp.float32)
->>>>>>> 6e70cfdae657d4cc78f2dee33be491e592426834
 
     def sample_h_given_v(self, v):
         pre_activation = cp.dot(v, self.W) + self.c
