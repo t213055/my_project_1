@@ -20,8 +20,8 @@ def run_experiments():
     # 1. 実験設定
     # ------------------------------------------
     n_v = 10
-    n_trials = 50 #
-    epochs = 5000 #
+    n_trials = 1 #
+    epochs = 10 #
     batch_size = 100
     lr = 0.01  # 学習率 (標準的な値)
 
