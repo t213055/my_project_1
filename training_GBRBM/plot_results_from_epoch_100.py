@@ -6,12 +6,12 @@ def plot_combined_results_epoch_100():
     # ------------------------------------------
     # 1. 描画用の設定
     # ------------------------------------------
-    epochs = 5000
+    epochs = 10
     # 元の記録タイミング
     full_x_axis = list(range(0, 101)) + list(range(110, epochs + 1, 10))
     
     # ★ 変更点: インデックス100（ちょうど100エポック目）以降のみを抽出
-    start_idx = 150
+    start_idx = 8
     x_axis = full_x_axis[start_idx:]
     
     s_nh_list = [5, 10, 20]

@@ -10,8 +10,10 @@ import gbrbm
 try:
     import cupy as cp
     xp = cp
+    print("we use GPU")
 except ImportError:
     xp = np
+    print("we use CPU")
 
 def run_experiments():
     # ------------------------------------------
