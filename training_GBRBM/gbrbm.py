@@ -69,10 +69,12 @@ class GBRBM:
         # パラメータ: 指定された標準偏差(weight_std)で初期化
         self.W = cp.random.normal(0, weight_std/(cp.sqrt(n_v + n_h)), (n_v, n_h))
         #print("weight_std:",weight_std, "n_v:",n_v, "n_h:",n_h, "sigma:",weight_std/(cp.sqrt(n_v + n_h)))
+        
+        # 可視層のバイアスパラメータ
         self.b = cp.ones(n_v) * 0.001
+        
+        # 隠れ層のバイアスパラメータ
         #self.c = cp.ones(n_h) * 0.001
-
-        #c=-5に固定した場合の実験用
         self.c = cp.ones(n_h) * (-5)
         
         self.gamma = cp.ones(n_v) * cp.log(cp.exp(1.0) - 1.0)
@@ -152,7 +154,6 @@ class GBRBM:
         
         LL_neg = neg1 + neg2
         LL = LL_pos - LL_neg
-        
         return LL
 
     # ==========================================
