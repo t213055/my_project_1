@@ -16,7 +16,7 @@ def run_experiments():
     n_v = 10
     n_trials = 100 # 実際には 50 などの適切な値を設定
     epochs = 10000   # 実際には 5000 などの適切な値を設定
-    batch_size = 500
+    batch_size = 100
     lr = 0.01
 
     #最初の100エポックは毎回記録、以降は10エポックごとに記録
