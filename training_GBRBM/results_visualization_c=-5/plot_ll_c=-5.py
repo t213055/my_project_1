@@ -12,9 +12,9 @@ B_TYPES = ["max", "min"]   # 比較するβのタイプ
 B_RATIOS = [0.25, 1.0, 4.0, 8.0] # 比較するリレーション倍率
 
 # 2. ★表示範囲の指定設定 (3パターン対応)
-X_RANGE_MODE = 'all' #'all', 'from_start', 'to_end'の中から選択 
+X_RANGE_MODE = 'to_end' #'all', 'from_start', 'to_end'の中から選択 
 X_START = 9000
-X_END = 200
+X_END = 60
 Y_MARGIN = 0.05
 
 # 3. パス設定 (スクリプトの配置場所から見た相対パス)
