@@ -295,7 +295,7 @@ beta_step = 0.001000000000000
 
 
 #出力ファイルを指定 or 出力ファイルから最終状態を読み込む
-csv_file = "beta_increase_stepsize0.001_eps=0.001_α=1.0_c_all_beta25.0.txt"
+csv_file = "beta_increase_stepsize0.001_eps=0.001_α=1.0_c=-2_beta25.0.txt"
 last_state = load_last_state(csv_file)
 if last_state is not None:
     last_alpha, last_c, last_beta, q_last, hq_last, r_last, hr_last = last_state
@@ -312,7 +312,7 @@ for alpha in [1.0]:#[0.5, 1.0, 2.0]
     T_alpha = (1/(1+alpha)) * np.array([[0,alpha],[1,0]])
     hat_T_alpha = (1/(1+alpha)) * np.array([[1,0],[0,alpha]])
 
-    for c in [eps, -2, -5]:
+    for c in [-2]:#eps, -5, 
         if last_alpha is None:
             beta = beta_ini
             #q = 2 * np.ones((2, 1)); hq = 2 * np.ones((2, 1))
