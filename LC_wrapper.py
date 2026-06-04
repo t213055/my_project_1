@@ -8,7 +8,7 @@ retry = 0
 python_exe = Path("venv/Scripts/python.exe")
 
 while True:
-    result = subprocess.run([str(python_exe), "evaluate_lc.py"])
+    result = subprocess.run([str(python_exe), "evaluate_lc_beta_increase.py"])
 
     if result.returncode == 0:
         print("正常終了。再実行せず終了します。")
