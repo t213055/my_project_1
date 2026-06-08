@@ -74,7 +74,6 @@ class GBRBM:
         self.b = cp.ones(n_v) * 0.001
         
         # 隠れ層のバイアスパラメータ
-        #self.c = cp.ones(n_h) * 0.001
         self.c = cp.ones(n_h) * (-2)
         
         self.gamma = cp.ones(n_v) * cp.log(cp.exp(1.0) - 1.0)
