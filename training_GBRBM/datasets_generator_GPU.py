@@ -34,25 +34,6 @@ def generate_and_save_teacher_data():
         model.gamma = cp.log(cp.exp(vars_sampled) - 1.0) # gammaに変換
         
         # 2. ギブスサンプリングによるデータ生成
-        """
-        # 最初から n_samples行、n_v列のGPU配列を用意しておく
-        raw_data = cp.zeros((n_samples, n_v), dtype=cp.float32)
-        # 初期値
-        _, v_current = model.sample_v_given_h(cp.zeros((1, n_h)))
-        
-        for i in range(n_samples):
-            # 最初は burn_in、次からは thinning 回数回す
-            steps = burn_in if i == 0 else thinning
-            for _ in range(steps):
-                _, h = model.sample_h_given_v(v_current)
-                _, v_current = model.sample_v_given_h(h)
-            
-            #用意した箱raw_dataの i行目に直接代入
-            raw_data[i] = v_current
-        
-            if (i + 1) % 1000 == 0:
-                print(f"  Sample {i+1}/{n_samples} generated.")
-        """
         # 最初から 5000行(n_samples) の行列を作って初期値にする！
         # これにより、5000個のサンプルを一斉に計算させます。
         _, v_current = model.sample_v_given_h(cp.zeros((n_samples, n_h), dtype=cp.float32))
