@@ -11,7 +11,7 @@ def run_experiments():
     # ------------------------------------------
     n_v = 10
     n_trials = 100 # 実際には 50 などの適切な値を設定
-    epochs = 10000  # 実際には 5000 などの適切な値を設定
+    epochs = 10000   # 実際には 5000 などの適切な値を設定
     batch_size = 100
     lr = 0.01
 
@@ -21,10 +21,11 @@ def run_experiments():
 
     # マトリックス設定 (beta_max または beta_min のいずれかを含む)
     experiment_configs = [
-        {"t_nh": 15, "s_nh": 10, "beta_max": 1.783}, # α=1.0
+        #{"t_nh": 15, "s_nh": 10, "beta_max": 2.703}, # α=1.0
+        {"t_nh": 15, "s_nh": 10, "beta_min": 2.704}, # α=1.0
     ]
     
-    beta_ratios = [0.25]
+    beta_ratios = [1.00]
 
     os.makedirs("results", exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")

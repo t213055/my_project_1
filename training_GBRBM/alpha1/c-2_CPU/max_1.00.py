@@ -21,7 +21,8 @@ def run_experiments():
 
     # マトリックス設定 (beta_max または beta_min のいずれかを含む)
     experiment_configs = [
-        {"t_nh": 15, "s_nh": 10, "beta_max": 1.783}, # α=1.0
+        {"t_nh": 15, "s_nh": 10, "beta_max": 1.63}, # α=1.0
+        #{"t_nh": 15, "s_nh": 10, "beta_min": 1.893}, # α=1.0
     ]
     
     beta_ratios = [1.00]
