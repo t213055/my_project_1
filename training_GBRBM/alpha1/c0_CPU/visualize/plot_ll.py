@@ -12,7 +12,7 @@ B_TYPES = ["max", "min"]   # 比較するβのタイプ
 B_RATIOS = [0.25, 1.0, 4.0, 8.0] # 比較するリレーション倍率
 
 # 2. 表示範囲の指定設定 (4パターン対応)
-X_RANGE_MODE = 'range'     # 'all', 'from_start', 'to_end', 'range' の中から選択 
+X_RANGE_MODE = 'all'     # 'all', 'from_start', 'to_end', 'range' の中から選択 
 X_START = 2000               # from_start または range モードの開始エポック
 X_END = 10000               # to_end または range モードの終了エポック
 Y_MARGIN = 0.05
