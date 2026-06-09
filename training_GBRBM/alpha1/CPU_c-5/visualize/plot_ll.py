@@ -12,16 +12,16 @@ B_TYPES = ["max", "min"]   # 比較するβのタイプ
 B_RATIOS = [0.25, 1.0, 4.0, 8.0] # 比較するリレーション倍率
 
 # 2. 表示範囲の指定設定 (4パターン対応)
-X_RANGE_MODE = 'all'     # 'all', 'from_start', 'to_end', 'range' の中から選択 
-X_START = 2000               # from_start または range モードの開始エポック
-X_END = 10000               # to_end または range モードの終了エポック
+X_RANGE_MODE = 'range'     # 'all', 'from_start', 'to_end', 'range' の中から選択 
+X_START = 300               # from_start または range モードの開始エポック
+X_END = 4000               # to_end または range モードの終了エポック
 Y_MARGIN = 0.05
 
 # 3. 凡例の配置設定 (可変)
 # loc: 凡例ボックスの基準位置 ('upper left', 'center right', 'best' など)
 # bbox: グラフ枠に対する相対座標 (x, y)。枠外に出す場合は (1.02, 0.5) のように指定。
 #       グラフ枠内に収める場合は None に設定。
-LEGEND_LOC = 'upper left'
+LEGEND_LOC = 'lower right'
 LEGEND_BBOX = None#(1.02, 0.5)  
 
 # 4. 標準偏差（誤差のシャドウ）の表示切り替え
@@ -34,7 +34,7 @@ SAVE_DIR = "plots"
 # 6. デザイン・配色設定 (実線のまま濃淡で区別)
 COLORS = {
     0.25: {'max': 'mediumblue',  'min': 'cornflowerblue'}, # 青系
-    1.0:  {'max': 'forestgreen', 'min': 'limegreen'},      # 緑系
+    1.0:  {'max': 'forestgreen', 'min': '#a65628'},      # 緑系
     4.0:  {'max': 'firebrick',   'min': 'lightcoral'},     # 赤系
     8.0:  {'max': 'indigo',      'min': 'mediumorchid'}    # 紫系
 }
