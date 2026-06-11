@@ -4,15 +4,18 @@ import time
 from datetime import datetime
 import gbrbm_CPU
 
+from sklearn.datasets import load_diabetes
+from sklearn.preprocessing import StandardScaler
+
 
 def run_experiments():
     # ------------------------------------------
     # 1. 実験設定
     # ------------------------------------------
     n_v = 10
-    n_trials = 100 # 実際には 50 などの適切な値を設定
+    n_trials = 50 # 実際には 50 などの適切な値を設定
     epochs = 10000   # 実際には 5000 などの適切な値を設定
-    batch_size = 100
+    batch_size = 32
     lr = 0.01
 
     #最初の100エポックは毎回記録、以降は10エポックごとに記録
@@ -24,7 +27,7 @@ def run_experiments():
         {"t_nh": 15, "s_nh": 10, "beta_max": 1.783}, # α=1.0
     ]
     
-    beta_ratios = [4.00]
+    beta_ratios = [1.00]
 
     os.makedirs("results", exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
@@ -44,6 +47,8 @@ def run_experiments():
             base_beta = config["beta_min"]
             beta_type = "min"
         
+        # パターンA　Toyデータセットを使用する場合
+        """
         data_path = f"../../data/teacher_nv10_nh{t_nh}_s5000.npy"
         if not os.path.exists(data_path):
             print(f"Error: {data_path} not found. Skipping.")
@@ -54,6 +59,18 @@ def run_experiments():
         #ロードしたデータをtrain_data配列として定義
         train_data = np.array(raw_data, dtype=np.float32)
         n_samples = train_data.shape[0]
+        """
+
+        #"""# パターンB　糖尿病データセット
+        diabetes = load_diabetes()
+        X_diabetes = diabetes.data
+        X_diabetes = StandardScaler().fit_transform(X_diabetes)
+        train_data = np.array(X_diabetes, dtype=np.float32)
+        n_samples = train_data.shape[0]
+        #"""
+
+        print(train_data.shape)
+        print(train_data[:10, :])
 
         for b_ratio in beta_ratios:
             # 判定した base_beta を使用
