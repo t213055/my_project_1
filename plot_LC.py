@@ -40,8 +40,8 @@ SHOW_MINIMA_DICT = {
 # cの値をキーにして、テキストを点から上方向にどれくらいずらすかの倍率を指定します。
 # デフォルトは 1.2。重なる場合は片方を 1.6 や 2.0 などに変更して調整してください。
 PEAK_TEXT_OFFSET_DICT = {
-    -2: 3.6,
-    -5: 1.6,     # -2 の値と重なる場合は、こちらを上にずらして回避
+    #-2: 3.6,
+    #-5: 1.6,     # -2 の値と重なる場合は、こちらを上にずらして回避
     0.001: 0.1
 }
 
@@ -164,7 +164,8 @@ for ax, alpha in zip(axes, alpha_keys):
                 )
 
     ax.set_yscale("log")
-    ax.set_title(rf"$\alpha={alpha:g}$", fontsize=FONT_SIZE)
+    #ax.set_title(rf"$\alpha={alpha:g}$", fontsize=FONT_SIZE)
+    #ax.set_title(rf"$\alpha={alpha:g}$での層相関", fontsize=FONT_SIZE)
     ax.tick_params(labelsize=FONT_SIZE)
     ax.grid(True, which="both", linestyle="--", alpha=1.0)
     
@@ -173,10 +174,12 @@ for ax, alpha in zip(axes, alpha_keys):
         ax.set_xlim(BETA_RANGE)
     
     # --- 凡例の描画 ---
+    """
     if LEGEND_BBOX is not None:
         ax.legend(fontsize=FONT_SIZE*0.8, loc=LEGEND_LOC, bbox_to_anchor=LEGEND_BBOX)
     else:
         ax.legend(fontsize=FONT_SIZE*0.8, loc=LEGEND_LOC)
+    """
 
 axes[-1].set_xlabel(r"$\beta$", fontsize=FONT_SIZE)
 axes[0].set_ylabel(r"$\chi$", fontsize=FONT_SIZE)

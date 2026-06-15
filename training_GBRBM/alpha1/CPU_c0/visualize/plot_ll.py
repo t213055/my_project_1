@@ -12,7 +12,7 @@ B_TYPES = ["max", "min"]   # 比較するβのタイプ
 B_RATIOS = [0.25, 1.0, 4.0, 8.0] # 比較するリレーション倍率
 
 # 2. 表示範囲の指定設定 (4パターン対応)
-X_RANGE_MODE = 'all'     # 'all', 'from_start', 'to_end', 'range' の中から選択 
+X_RANGE_MODE = 'range'     # 'all', 'from_start', 'to_end', 'range' の中から選択 
 X_START = 70              # from_start または range モードの開始エポック
 X_END = 300               # to_end または range モードの終了エポック
 Y_MARGIN = 0.05
@@ -28,7 +28,7 @@ LEGEND_BBOX = None#(1.02, 0.5)
 SHOW_STD = False           # True: 表示する, False: 表示しない
 
 # 5. パス設定 (スクリプトの配置場所から見た相対パス)
-DATA_DIR = "../results"
+DATA_DIR = "../_results"
 SAVE_DIR = "plots"
 
 # 6. デザイン・配色設定 (実線のまま濃淡で区別)
@@ -130,7 +130,7 @@ def load_all_results():
 def plot_all_8_combined(data_dict):
     plt.figure(figsize=(11, 7))
     ax = plt.gca()
-    plt.title(f'All 8 Experimental Configurations Combined ($n_h={S_NH}$)', fontsize=FS['suptitle'])
+    #plt.title(f'All 8 Experimental Configurations Combined ($n_h={S_NH}$)', fontsize=FS['suptitle'])
     plt.xlabel('Epochs', fontsize=FS['label'])
     plt.ylabel('Log-Likelihood', fontsize=FS['label'])
     plt.tick_params(labelsize=FS['tick'])
@@ -146,7 +146,10 @@ def plot_all_8_combined(data_dict):
                 
                 # 凡例ラベルの書式変更 (例: "0.25 βmax")
                 # グラフ内のフォントと揃えるため、数学フォント(LaTeX)を使用しています
-                label = f'{b_ratio} $\\beta_{{{b_type}}}$'
+                if b_ratio==1.0:
+                    label = f'$\\beta_{{{b_type}}}$'
+                else:
+                    label = f'{b_ratio} $\\beta_{{{b_type}}}$'
                 
                 # 通常プロット
                 plt.plot(x, mean, label=label, color=c_val, linestyle='-', linewidth=2)
