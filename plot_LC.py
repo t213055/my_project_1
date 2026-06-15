@@ -8,8 +8,8 @@ from collections import defaultdict
 # =============================
 # 1. 読み込むファイルのリスト
 FILE_PATHS = [
-    "LC_alpha=1.0/beta_increase_stepsize0.001_eps=0.001_α=1.0_c=-2_beta25.0.txt",
-    "LC_alpha=1.0/beta_increase_stepsize0.001_eps=0.001_α=1.0_c=-5_beta25.0.txt",
+    #"LC_alpha=1.0/beta_increase_stepsize0.001_eps=0.001_α=1.0_c=-2_beta25.0.txt",
+    #"LC_alpha=1.0/beta_increase_stepsize0.001_eps=0.001_α=1.0_c=-5_beta25.0.txt",
     "LC_alpha=1.0/beta_increase_stepsize0.001_eps=0.001_α=1.0_c=0.001_beta25.0.txt"
 ]
 
@@ -42,12 +42,12 @@ SHOW_MINIMA_DICT = {
 PEAK_TEXT_OFFSET_DICT = {
     -2: 3.6,
     -5: 1.6,     # -2 の値と重なる場合は、こちらを上にずらして回避
-    0.001: 2.4
+    0.001: 0.1
 }
 
 # 7. 画像の保存先
 SAVE_DIR = "LC_alpha=1.0"
-SAVE_FILENAME = "combined_plot.png"
+SAVE_FILENAME = "combined_plot_conference.png"
 
 # =============================
 # データ読み込みと統合
