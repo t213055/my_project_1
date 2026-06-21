@@ -140,7 +140,7 @@ for ax, alpha in zip(axes, alpha_keys):
             ax.text(
                 b_peak, chi_peak * offset, 
                 rf"{b_peak:.7g}", color=color, ha="center", va="bottom", 
-                fontsize=FONT_SIZE*0.6, weight='bold'
+                fontsize=FONT_SIZE*1.2, weight='bold'
             )
 
             # --- χ 下落後の極小点 (Drop Bottom) ---

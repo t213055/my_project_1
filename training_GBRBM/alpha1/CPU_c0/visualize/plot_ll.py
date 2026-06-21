@@ -13,15 +13,15 @@ B_RATIOS = [0.25, 1.0, 4.0, 8.0] # 比較するリレーション倍率
 
 # 2. 表示範囲の指定設定 (4パターン対応)
 X_RANGE_MODE = 'range'     # 'all', 'from_start', 'to_end', 'range' の中から選択 
-X_START = 70              # from_start または range モードの開始エポック
-X_END = 300               # to_end または range モードの終了エポック
+X_START = 2000              # from_start または range モードの開始エポック
+X_END = 10000              # to_end または range モードの終了エポック
 Y_MARGIN = 0.05
 
 # 3. 凡例の配置設定 (可変)
 # loc: 凡例ボックスの基準位置 ('upper left', 'center right', 'best' など)
 # bbox: グラフ枠に対する相対座標 (x, y)。枠外に出す場合は (1.02, 0.5) のように指定。
 #       グラフ枠内に収める場合は None に設定。
-LEGEND_LOC = 'lower right' #lower right , upper left
+LEGEND_LOC = 'upper left' #lower right , upper left
 LEGEND_BBOX = None#(1.02, 0.5)  
 
 # 4. 標準偏差（誤差のシャドウ）の表示切り替え
