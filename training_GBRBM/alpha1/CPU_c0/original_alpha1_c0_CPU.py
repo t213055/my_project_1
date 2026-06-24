@@ -12,9 +12,9 @@ def run_experiments():
     # ------------------------------------------
     # 1. 実験設定
     # ------------------------------------------
-    n_v = 10
-    n_trials = 10 # 実際には 50 などの適切な値を設定
-    epochs = 10000   # 実際には 5000 などの適切な値を設定
+    n_v = 54
+    n_trials = 100 # 実際には 50 などの適切な値を設定
+    epochs = 5000   # 実際には 5000 などの適切な値を設定
     batch_size = 10
     lr = 0.01
 
@@ -27,7 +27,7 @@ def run_experiments():
         {"t_nh": 15, "s_nh": 10, "beta_max": 1.783}, # α=1.0
     ]
     
-    beta_ratios = [1.00]
+    beta_ratios = [0.125,0.25,1.00,4.00,8.00]
 
     os.makedirs("results", exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
@@ -61,13 +61,25 @@ def run_experiments():
         n_samples = train_data.shape[0]
         """
 
-        #"""# パターンB　糖尿病データセット
+        # パターンB　糖尿病データセット
         diabetes = load_diabetes()
         X_diabetes = diabetes.data
         X_diabetes = StandardScaler().fit_transform(X_diabetes)
         train_data = np.array(X_diabetes, dtype=np.float32)
         n_samples = train_data.shape[0]
-        #"""
+        
+
+        """# パターンC 森林の被覆タイプデータセット
+        from sklearn.datasets import fetch_covtype
+        from sklearn.preprocessing import StandardScaler
+        
+        covtype = fetch_covtype()
+        X_covtype = covtype.data
+        X_covtype = StandardScaler().fit_transform(X_covtype)
+        train_data = np.array(X_covtype, dtype=np.float32)
+        n_samples = train_data.shape[0]
+        # n_v = train_data.shape[1] # 必要に応じて n_v = 54 を自動取得
+        """
 
         print(train_data.shape)
         print(train_data[:10, :])
