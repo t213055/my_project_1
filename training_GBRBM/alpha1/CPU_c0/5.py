@@ -15,7 +15,7 @@ def run_experiments():
     n_v = 54
     n_trials = 20 # 実際には 50 などの適切な値を設定
     epochs = 5000   # 実際には 5000 などの適切な値を設定
-    batch_size = 10000
+    batch_size = 16384
     lr = 0.01
 
     #最初の100エポックは毎回記録、以降は10エポックごとに記録
@@ -27,7 +27,7 @@ def run_experiments():
         {"t_nh": 15, "s_nh": 10, "beta_max": 1.783}, # α=1.0
     ]
     
-    beta_ratios = [0.125,0.25,1.00,4.00,8.00]
+    beta_ratios = [8.00]
 
     os.makedirs("results", exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
