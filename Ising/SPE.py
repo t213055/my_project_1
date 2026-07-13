@@ -4,8 +4,8 @@ import csv
 from scipy.integrate import quad
 
 #モデルのパラメータ
-b = 0.0
-c = 0.0
+b = 0.001
+c = 0.001
 gamma = np.log(np.exp(1) - 1)
 alpha = 1.0
 
