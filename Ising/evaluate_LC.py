@@ -9,12 +9,12 @@ from numpy.polynomial.hermite import hermgauss
 b = 0.001
 c = 0.001
 gamma = np.log(np.exp(1) - 1)
-alpha = 0.5
+alpha = 2.0
 
 #温度のスタート, ゴール, ステップサイズ
 beta_init = 0.0 + 1e-16
-beta_limit = 1.2
-beta_step = 0.0001
+beta_limit = 1.3
+beta_step = 0.001
 
 #収束判定、ループ上限回数、緩和法の強さ
 tol_sp = 1e-10
@@ -179,7 +179,7 @@ def calc_coeff():
         return S, T, U, V, W, X, Y, Z
     
 #計算したモーメントを基にHQを計算し層相関の値を導出
-def Q_HQ_chi():
+def Q_HQ_substitution_chi():
     
     #スピングラス秩序の補助変数の感受率だから、初期値は乱数で問題ないと思う
     Q = np.empty((2,2))
@@ -210,9 +210,23 @@ def Q_HQ_chi():
         
         #HQの値の収束確認
         if (np.all(np.abs(HQ-HQ_old) <= tol_lc)):
-            return HQ, abs(chi_vh)
+            return abs(chi_vh)
 
-        #sys.exit()
+
+def Q_HQ_solver_chi():
+
+    #スピングラス秩序の補助変数の感受率だから、初期値は乱数で問題ないと思う
+    #print("X", X); print("Y", Y); print("beta**2 :", beta**2)
+    M = np.identity(2) - beta**2 * T_alpha @ np.array([[X, 0],[0, Y]])
+    #print("M :", M)
+    #print("T_alpha :", T_alpha)
+    B = beta**2 * T_alpha @ np.array([[2*W, 0],[0, 2*Z]])
+    #print("B :", B)
+    HQ = np.linalg.solve(M, B)
+    #print("HQ :", HQ)
+    chi_vh = -(1/1+alpha) * HQ[0,1] * T
+    #print("chi_vh :", abs(chi_vh))
+    return abs(chi_vh)
 
 #秩序パラメータを初期化
 q = q_init
@@ -248,9 +262,10 @@ with open(filename, mode="a", newline="") as file:
                 "Y:", f"{Y:.3e}",
                 "Z:", f"{Z:.3e}") """
             
-            _, chi_vh= Q_HQ_chi()
+            chi_vh = Q_HQ_solver_chi()
+            #chi_vh = Q_HQ_substitution_chi()
             
-            #"""
+            
             #ファイルへの書き込み "書き込み先ファイルはoutput.txt"
             writer.writerow([
                 f"{beta:.4f}",
@@ -260,11 +275,12 @@ with open(filename, mode="a", newline="") as file:
                 f"{q_hat[1]:.10e}",
                 f"{iter:.1f}",
                 f"{chi_vh:.5e}"])
+            
 
             #βを更新
             beta += beta_step
 
-            #"""
+            
             
            
 """            
