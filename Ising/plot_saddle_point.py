@@ -14,10 +14,8 @@ data = np.loadtxt(filename, delimiter=",", skiprows=1)
 beta    = data[:, 0]  # 1列目: 横軸
 q_v     = data[:, 1]  # 2列目: 可視層 スピングラス秩序
 q_h     = data[:, 2]  # 3列目: 隠れ層 スピングラス秩序
-r_v     = data[:, 3]  # 4列目: 可視層 自己相関
-q_hat_v = data[:, 4]  # 5列目: 可視層 スピングラス補助
-q_hat_h = data[:, 5]  # 6列目: 隠れ層 スピングラス補助
-r_hat_v = data[:, 6]  # 7列目: 可視層 自己相関補助
+q_hat_v = data[:, 3]  # 5列目: 可視層 スピングラス補助
+q_hat_h = data[:, 4]  # 6列目: 隠れ層 スピングラス補助
 # 8列目(data[:, 7])の反復回数は、今回はグラフに使わないので無視します
 
 # ==========================================
@@ -32,7 +30,6 @@ line_style = '.-'
 # --- 上のグラフ：物理的な秩序パラメータ ---
 ax1.plot(beta, q_v, line_style, label="q_v (Visible Spin-glass)", color="blue")
 ax1.plot(beta, q_h, line_style, label="q_h (Hidden Spin-glass)", color="red")
-ax1.plot(beta, r_v, line_style, label="r_v (Visible Auto-corr)", color="green")
 ax1.set_ylabel("Order Parameters")
 ax1.set_title("Phase Transition of GBRBM")
 ax1.grid(True, linestyle='--', alpha=0.7)
@@ -41,7 +38,6 @@ ax1.legend()
 # --- 下のグラフ：補助変数 ---
 ax2.plot(beta, q_hat_v, line_style, label="q_hat_v", color="cyan")
 ax2.plot(beta, q_hat_h, line_style, label="q_hat_h", color="orange")
-ax2.plot(beta, r_hat_v, line_style, label="r_hat_v", color="lime")
 ax2.set_xlabel("Inverse Temperature (beta)")
 ax2.set_ylabel("Auxiliary Variables")
 ax2.grid(True, linestyle='--', alpha=0.7)

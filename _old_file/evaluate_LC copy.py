@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib as plt
 import csv
 from scipy.integrate import quad
+from numpy.polynomial.hermite import hermgauss
 
 #モデルのパラメータ
 b = 0.001
@@ -11,7 +12,7 @@ alpha = 1.0
 
 #温度のスタート, ゴール, ステップサイズ
 beta_init = 0.0 + 1e-16
-beta_limit = 10.0
+beta_limit = 4.0
 beta_step = 0.01
 
 #温度の進行方向
@@ -34,14 +35,17 @@ if direction == "FW":
         q_init = np.array(np.ones(2))*1e-16
         r_init = np.ones(1)*1e-16
         q_hat_init = beta**2 * T_alpha @ q_init
-        r_hat_init = alpha*beta**2*(2*(1+alpha))**-1
+        r_hat_init = (alpha*(beta**2))/(2*(1+alpha))
+"""
+    #分散>=0の条件を満たすようq_hat_init[0], r_hat_initを乱数で初期化
     elif init_pattern == "R":
-        #分散>=0の条件を満たすようq_hat_init[0], r_hat_initを乱数で初期化
         q_init = np.random.normal(0, 1, 2)
         r_init = abs(np.random.normal(0, 1, 1))
         q_hat_init = beta**2 * T_alpha @ q_init
         r_hat_init = alpha*beta**2*(2*(1+alpha))**-1
         q_hat_init[0] = 2*r_hat_init - 1 + abs(np.random.normal(0, 1))
+
+#βを逆方向から動かすパターン
 elif direction == "BW":
     q_init = np.array(np.ones(2))*1e-16
     q_hat_init = beta**2 * T_alpha @ q_init
@@ -53,7 +57,7 @@ elif direction == "BW":
     q_hat_init[1] = 1.3759082719e+00
     r_hat_init = 2.5000000000e-33
 print("q_init :", q_init, "r_init :", r_init, "q_hat_init :", q_hat_init, "r_hat_init", r_hat_init)
-
+"""
 #収束判定、ループ上限回数、緩和法の強さ
 tol = 1e-10
 #max_iter = 100000
@@ -66,7 +70,7 @@ def gaussian_pdf(z):
     return (np.sqrt(2*np.pi))**-1 * np.exp(-0.5*z**2)
 
 def integrand_q_h(z):
-    f_z = np.tanh(c + np.sqrt(q_hat[1]))
+    f_z = np.tanh(c + z*np.sqrt(q_hat[1]))
     return gaussian_pdf(z) * f_z**2
 
 def saddle_point(beta, q, r, q_hat, r_hat): #秩序パラメータ、補助変数を返す
@@ -87,6 +91,7 @@ def saddle_point(beta, q, r, q_hat, r_hat): #秩序パラメータ、補助変�
         q[0] = (b**2 + q_hat[0])/(softplus(gamma)**-1 + q_hat[0] - 2*r_hat)**2
         q[1], _ = quad(integrand_q_h, -12, 12)
         r = (softplus(gamma)**-1 - b**2 - 2*r_hat)/(softplus(gamma)**-1 + q_hat[0] - 2*r_hat)**2
+        r_hat = (alpha*(beta**2))/(2*(1+alpha))
 
         #補助変数の更新
         q_hat = beta**2 * T_alpha @ q
@@ -97,15 +102,99 @@ def saddle_point(beta, q, r, q_hat, r_hat): #秩序パラメータ、補助変�
             abs(r - r_old) <= tol and
             abs(r_hat - r_hat_old) <= tol):
             return q, r, q_hat, r_hat, iter
-            #print(beta, q[0], q[1], r, q_hat[0], q_hat[1], r_hat, iter)
-            #break
+            
+
+#収束した秩序パラメータを受け取り、多項式を作成し、ガウス積分を実行し、多項式を数値として返す関数
+def calc_coeff():
+        A = softplus(gamma)**-1 - 2*alpha*beta**2*(1+alpha)**-1 + q_hat[0]
+        print(f"{beta:.2f}",2*alpha*beta**2*(1+alpha)**-1, f"{A:.3e}")
+
+        def get_moments(z):
+            B = b + z*np.sqrt(q_hat[0])
+            V_moment_1 = B / A
+            V_moment_2 = (1.0 / A) + V_moment_1**2
+            H_moment_1 = np.tanh(c + z * np.sqrt(q_hat[1]))
+            return V_moment_1, V_moment_2, H_moment_1
+
+        #モーメント多項式 S, T, U, V, W, X, Y, Zを定義
+        def integrand_S(z):
+            Ev1, Ev2, Eh1 = get_moments(z)
+            S_val = Ev2 - Ev1**2
+            return S_val #* gaussian_pdf(z)
+
+        def integrand_T(z):
+            Ev1, Ev2, Eh1 = get_moments(z)
+            T_val = Ev2*Ev1 - Ev1**3
+            return T_val #* gaussian_pdf(z)
+        
+        def integrand_U(z):
+            Ev1, Ev2, Eh1 = get_moments(z)
+            U_val = Eh1 - Eh1**3
+            return U_val #* gaussian_pdf(z)
+        
+        def integrand_V(z):
+            Ev1, Ev2, Eh1 = get_moments(z)
+            V_val = 1 - Eh1**2
+            return V_val #* gaussian_pdf(z)
+        
+        def integrand_W(z):
+            Ev1, Ev2, Eh1 = get_moments(z)
+            W_val = Ev2*Ev1 - Ev1**3
+            return W_val #* gaussian_pdf(z)
+        
+        def integrand_X(z):
+            Ev1, Ev2, Eh1 = get_moments(z)
+            X_val = Ev2**2 - 4*Ev2*Ev1**2 + 3*Ev1**4
+            return X_val #* gaussian_pdf(z)
+        
+        def integrand_Y(z):
+            Ev1, Ev2, Eh1 = get_moments(z)
+            Y_val = 3*Eh1**4 - 4*Eh1**2 + 1
+            return Y_val #* gaussian_pdf(z)
+        
+        def integrand_Z(z):
+            Ev1, Ev2, Eh1 = get_moments(z)
+            Z_val = Eh1 - Eh1**3
+            return Z_val #* gaussian_pdf(z)
+        
+        """
+        #quadで計算する場合(integrandの中の * gaussian_pdf(z)が必須)
+        S, _ = quad(integrand_S, -12, 12)
+        T, _ = quad(integrand_T, -12, 12, limit=200)
+        U, _ = quad(integrand_U, -12, 12)
+        V, _ = quad(integrand_V, -12, 12)
+        W, _ = quad(integrand_W, -12, 12, limit=200)
+        X, _ = quad(integrand_X, -12, 12, limit=200)
+        Y, _ = quad(integrand_Y, -12, 12)
+        Z, _ = quad(integrand_Z, -12, 12)
+        """
+        
+        #ガウスエルミート求積法で計算する場合（integrandの中の * gaussian_pdf(z)を除く必要あり）
+        deg = 30
+        x_i, w_i = hermgauss(deg)
+
+        z_i = np.sqrt(2) * x_i
+        weights = w_i / np.sqrt(np.pi)
+
+        S = np.sum(integrand_S(z_i) * weights)
+        T = np.sum(integrand_T(z_i) * weights)
+        U = np.sum(integrand_U(z_i) * weights)
+        V = np.sum(integrand_V(z_i) * weights)
+        W = np.sum(integrand_W(z_i) * weights)
+        X = np.sum(integrand_X(z_i) * weights)
+        Y = np.sum(integrand_Y(z_i) * weights)
+        Z = np.sum(integrand_Z(z_i) * weights)
+
+        return S, T, U, V, W, X, Y, Z
+     
+
 
 #秩序パラメータを初期化
 q = q_init
 r = r_init
 q_hat = q_hat_init
 r_hat = r_hat_init
-print(q, r, q_hat, r_hat)
+print("initialized parameters :", q, q_hat)
 
 #出力の設定
 filename = "Ising_output.txt"
@@ -113,11 +202,28 @@ with open(filename, mode="a", newline="") as file:
     writer = csv.writer(file)
     writer.writerow(["beta", "q_v", "q_h", "r_v", "q_v_hat", "q_h_hat", "r_v_hat", "iter"])
 
-    #betaを変えながら鞍点を計算
+    #計算部
     if direction == "FW":
         while beta < beta_limit:
+
+            #秩序パラメータの計算
             q, r, q_hat, r_hat, iter = saddle_point(beta, q, r, q_hat, r_hat)
             
+            #層相関の計算
+            #モーメントの要素を定義（更新） f"{:.3e}"
+            S, T, U, V, W, X, Y, X = calc_coeff()
+            """print( #各モーメント多項式の値を表示
+                "β:", f"{beta:.4f}",
+                "S:", f"{S:.3e}",
+                "T:", f"{T:.3e}",
+                "U:", f"{U:.3e}",
+                "V:", f"{V:.3e}",
+                "W:", f"{W:.3e}",
+                "X:", f"{X:.3e}",
+                "Y:", f"{Y:.3e}",
+                "Z:", f"{Z:.3e}")"""    
+            
+
             #ファイルへの書き込み "書き込み先ファイルはoutput.txt"
             writer.writerow([
                 f"{beta:.4f}",
@@ -130,8 +236,9 @@ with open(filename, mode="a", newline="") as file:
                 f"{iter:.1f}"])
 
             #βを更新
-            
             beta += beta_step
+            
+"""            
             
     elif direction == "BW":
         while beta > beta_init:
@@ -150,3 +257,4 @@ with open(filename, mode="a", newline="") as file:
 
             #βを更新
             beta -= beta_step
+"""
