@@ -6,19 +6,20 @@ from scipy.integrate import quad
 from numpy.polynomial.hermite import hermgauss
 
 #モデルのパラメータ
-b = 0.001
-c = 0.001
+eps = 1e-16
+b = eps
+c = eps
 gamma = np.log(np.exp(1) - 1)
 alpha = 2.0
 
 #温度のスタート, ゴール, ステップサイズ
 beta_init = 0.0 + 1e-16
-beta_limit = 1.3
+beta_limit = 1.2
 beta_step = 0.001
 
 #収束判定、ループ上限回数、緩和法の強さ
 tol_sp = 1e-10
-tol_lc = 1e-3
+#tol_lc = 1e-3
 #max_iter = 100000
 #damping = 0.2
 
