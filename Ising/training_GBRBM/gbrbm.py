@@ -19,21 +19,21 @@ class UnitType:
 class BinaryUnit(UnitType):
     """ {0, 1} """
     @staticmethod
-    def activation(x):
+    def activation(x): #隠れ変数が1になる確率を返す だから解析計算と異なるように見える。
         return 1.0 / (1.0 + cp.exp(-cp.clip(x, -50, 50)))
     
     @staticmethod
-    def sample(prob):
+    def sample(prob): #計算した確率に応じて 0/1をサンプリングする
         return (cp.random.uniform(size=prob.shape) < prob).astype(cp.float32)
 
 class IsingUnit(UnitType):
     """ {-1, 1} """
-    @staticmethod
-    def activation(x):
+    @staticmethod 
+    def activation(x): #隠れ変数の期待値を返す。
         return cp.tanh(x)
     
     @staticmethod
-    def sample(expected):
+    def sample(expected): #期待値
         prob_one = (expected + 1.0) / 2.0
         return 2.0 * (cp.random.uniform(size=prob_one.shape) < prob_one) - 1.0
 
@@ -72,12 +72,10 @@ class GBRBM:
         
         # 可視層のバイアスパラメータ
         self.b = cp.ones(n_v) * 0.001
-        
+        self.gamma = cp.ones(n_v) * cp.log(cp.exp(1.0) - 1.0)
+
         # 隠れ層のバイアスパラメータ
         self.c = cp.ones(n_h) * 0.001
-
-        
-        self.gamma = cp.ones(n_v) * cp.log(cp.exp(1.0) - 1.0)
 
         # itertoolsではなく、ビットシフトを用いて_H_allを作成する
         num_states = 2 ** n_h
@@ -86,6 +84,10 @@ class GBRBM:
         shifts = cp.arange(n_h - 1, -1, -1).astype(cp.uint32)
         # ビット演算で一気に 0/1 の行列を作成
         self._H_all = ((n >> shifts) & 1).astype(cp.float32)
+        
+        # 渡された UnitType が IsingUnit の場合のみ {-1, 1} に変換
+        if isinstance(self.unit, IsingUnit):
+            self._H_all = self._H_all * 2.0 - 1.0
 
     def sample_h_given_v(self, v):
         pre_activation = cp.dot(v, self.W) + self.c
