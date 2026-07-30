@@ -1,6 +1,6 @@
 import numpy as np
 
-data = np.load("teacher_nv10_nh15_s5000.npy")
+data = np.load("teacher_nv10_nh30_s5000.npy")
 
 print(data)
 print(data.shape)

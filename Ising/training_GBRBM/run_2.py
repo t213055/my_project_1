@@ -6,7 +6,7 @@ import gbrbm  # GBRBMのモジュール（NumPy版）をインポート
 # ==========================================
 # 0. ハイパーパラメータの設定
 # ==========================================
-DATA_PATH = "data/teacher_nv10_nh30_s5000.npy"
+DATA_PATH = "data/teacher_nv10_nh30_s5000_1.npy"
 N_HIDDEN = 20           # 隠れ変数の数 (Ising)
 LEARNING_RATE = 0.001   # 学習率
 EPOCHS = 200             # エポック数
@@ -130,7 +130,7 @@ def main():
         # ==========================================
         # ② txtファイルにCSV形式で出力
         # ==========================================
-        save_filename = "output.txt"
+        save_filename = "output_1.txt"
         
         with open(save_filename, "w", encoding="utf-8") as f:
             # ヘッダーの作成
