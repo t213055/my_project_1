@@ -10,12 +10,12 @@ OUTPUT_IMAGE = "log_likelihood_plot.png"
 
 # 描画するエポックの範囲を指定 (最初から最後まで描画する場合は None に設定してください)
 START_EPOCH = None
-END_EPOCH = None
+END_EPOCH = 20
 
 # 描画する対象の列名（グラフ）をリストで指定してください。
 # すべての "Mean" 列を描画したい場合は None に設定してください。
 # 例: ["chi_Mean_0.25", "chi_Mean_1.0"]
-PLOT_COLUMNS = ["chi_Mean_0.2775", "chi_Mean_1.11", "chi_Mean_4.44"] #α=0.5
+PLOT_COLUMNS = ["chi_Mean_0.2775", "chi_Mean_1.11"]#, "chi_Mean_4.44"] #α=0.5
 
 def main():
     # 1. ファイルの存在確認

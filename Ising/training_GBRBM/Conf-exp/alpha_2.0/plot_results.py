@@ -5,7 +5,7 @@ import os
 # ==========================================
 # 設定
 # ==========================================
-INPUT_FILE = "output.txt"
+INPUT_FILE = "output_2.txt"
 OUTPUT_IMAGE = "log_likelihood_plot.png"
 
 # 描画するエポックの範囲を指定 (最初から最後まで描画する場合は None に設定してください)

@@ -25,7 +25,7 @@ print(f"  chi_vh: {max_chi}")
 plt.figure(figsize=(8, 6))
 
 # 通常のデータプロット（青色）
-plt.plot(data['beta'], data['chi_vh'], marker='o', linestyle='-', color='b', label=r'$\chi_{vh}$')
+plt.plot(data['beta'], data['chi_vh'], marker='.', linestyle='-', color='b', label=r'$\chi_{vh}$')
 
 # 最大値の箇所に赤い縦線を引き、星マークを付ける
 plt.axvline(x=max_beta, color='red', linestyle='--', alpha=0.6, label=f'Peak at $\\beta={max_beta}$')
