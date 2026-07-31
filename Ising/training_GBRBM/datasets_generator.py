@@ -19,7 +19,7 @@ def generate_and_save_teacher_data():
         
         # 1. 教師モデルの初期化
         # 重み std=1.0, サンプラーは適当で良い（手動で回すため）
-        model = gbrbm.GBRBM(n_v, n_h, gbrbm.IsingUnit(), gbrbm.ContrastiveDivergence(), weight_std=3.00); print("mode.l.W:", model.W)
+        model = gbrbm.GBRBM(n_v, n_h, gbrbm.IsingUnit(), gbrbm.ContrastiveDivergence(), weight_std=3.00, calc_exact_ll=False); print("model.W:", model.W)
         # 教師モデルのweight_stdだが、理論値βmaxよりも十分大きくする。α=0.5でもβmax=1.11のため、3.0もあれば十分大きい。
         #これにより、教師モデルは強い相関を持ち、データにパターンが現れる。教師モデルのweight_stdが小さいと、データはほぼランダムになり、学習が困難になる。
 
@@ -56,7 +56,7 @@ def generate_and_save_teacher_data():
         #scaled_data = (raw_data - v_min) / (v_max - v_min + 1e-8)
         
         # 4. 保存 (NumPy形式に変換して保存)
-        filename = f"data/teacher_nv10_nh{n_h}_s5000_2.npy"
+        filename = f"data/teacher_nv10_nh{n_h}_s5000.npy"
             
         np.save(filename, raw_data)
         print(f"Saved: {filename}\n")

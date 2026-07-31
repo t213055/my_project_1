@@ -5,7 +5,7 @@ import os
 # ==========================================
 # 設定
 # ==========================================
-INPUT_FILE = "output.txt"
+INPUT_FILE = "Exp-results.txt"
 OUTPUT_IMAGE = "log_likelihood_plot.png"
 
 # 描画するエポックの範囲を指定 (最初から最後まで描画する場合は None に設定してください)
@@ -15,9 +15,7 @@ END_EPOCH = None
 # 描画する対象の列名（グラフ）をリストで指定してください。
 # すべての "Mean" 列を描画したい場合は None に設定してください。
 # 例: ["chi_Mean_0.25", "chi_Mean_1.0"]
-#PLOT_COLUMNS = ["chi_Mean_0.2775", "chi_Mean_1.11", "chi_Mean_4.44"] #α=0.5
-#PLOT_COLUMNS = ["chi_Mean_0.25", "chi_Mean_1.0"]#, "chi_Mean_4.0"] #α=1.0
-PLOT_COLUMNS = ["chi_Mean_0.235", "chi_Mean_0.94", "chi_Mean_3.76"] #α=2.0
+PLOT_COLUMNS = ["chi_Mean_0.2775", "chi_Mean_1.11", "chi_Mean_4.44"] #α=0.5
 
 def main():
     # 1. ファイルの存在確認

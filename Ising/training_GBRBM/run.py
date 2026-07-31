@@ -9,15 +9,15 @@ import gbrbm  # GBRBMのモジュール（NumPy版）をインポート
 DATA_PATH = "data/teacher_nv10_nh30_s5000.npy"
 N_HIDDEN = 20           # 隠れ変数の数 (Ising)
 LEARNING_RATE = 0.001   # 学習率
-EPOCHS = 200             # エポック数
+EPOCHS = 1000             # エポック数
 BATCH_SIZE = 100        # バッチサイズ
 K_CD = 1                # Contrastive Divergence のステップ数
-N_TRIAL = 20            # 各条件の試行回数
+N_TRIAL = 5            # 各条件の試行回数
 
 # 比較する weight_std の基準値
 WEIGHT_STD_BASE = 0.94
 # 今回実験する weight_std のリスト（必要に応じて追加・コメントアウト）
-WEIGHT_STD_LIST = [WEIGHT_STD_BASE / 4.0, WEIGHT_STD_BASE, WEIGHT_STD_BASE * 4.0]
+WEIGHT_STD_LIST = [WEIGHT_STD_BASE / 4.0, WEIGHT_STD_BASE]#, WEIGHT_STD_BASE * 4.0]
 
 # ==========================================
 # 出力モードの設定
