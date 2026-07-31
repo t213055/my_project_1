@@ -19,7 +19,7 @@ TEACHER_WEIGHT_STD = 3.00 # 教師モデルの重み（相関を強くしてパ�
 # --- 学習（生徒モデル）の設定 ---
 S_NH = 5                # 生徒モデルの隠れ変数の数 (Ising)
 LEARNING_RATE = 0.001   # 学習率
-EPOCHS = 500           # エポック数
+EPOCHS = 1000           # エポック数
 BATCH_SIZE = 100        # バッチサイズ
 K_CD = 1                # Contrastive Divergence のステップ数
 N_TRIAL = 10             # 1つのデータセットに対する各条件の試行回数
