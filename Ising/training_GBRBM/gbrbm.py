@@ -93,6 +93,34 @@ class GBRBM:
             else:
                 self._H_all = None
 
+        # ==========================================
+        # Adamオプティマイザ用の初期化
+        # ==========================================
+        # 1. タイムステップ（更新回数）の初期化
+        self.t = 0
+        
+        # 2. Adamのハイパーパラメータ（標準的な推奨値）
+        self.beta1 = 0.9
+        self.beta2 = 0.999
+        self.epsilon = 1e-8
+        
+        # 3. 各パラメータのモーメンタム(m)と二乗和(v)をゼロで初期化
+        # 重み W 用
+        self.m_W = np.zeros_like(self.W)
+        self.v_W = np.zeros_like(self.W)
+        
+        # バイアス b 用
+        self.m_b = np.zeros_like(self.b)
+        self.v_b = np.zeros_like(self.b)
+        
+        # バイアス c 用
+        self.m_c = np.zeros_like(self.c)
+        self.v_c = np.zeros_like(self.c)
+        
+        # 分散パラメータ gamma 用
+        self.m_gamma = np.zeros_like(self.gamma)
+        self.v_gamma = np.zeros_like(self.gamma)
+
     def sample_h_given_v(self, v):
         pre_activation = np.dot(v, self.W) + self.c
         h_prob = self.unit.activation(pre_activation)
@@ -134,6 +162,69 @@ class GBRBM:
         sig2 = self.get_var()
         sigmoid_gamma = 1.0 / (1.0 + np.exp(-np.clip(self.gamma, -50, 50)))
         self.gamma += lr * (sigmoid_gamma * (v_sq_mean - vk_sq_mean)) / (2 * sig2**2)
+
+    def update_adam(self, v_batch, lr):
+        """Adamオプティマイザを用いた勾配更新メソッド"""
+        
+        # ==========================================
+        # 1. 勾配の計算 (既存のupdateメソッドと同じ処理)
+        # ==========================================
+        # --- Positive Phase ---
+        h0_prob, _ = self.sample_h_given_v(v_batch)
+
+        # --- Negative Phase ---
+        vk = self.sampler.run(self, v_batch)
+        hk_prob, _ = self.sample_h_given_v(vk)
+        
+        # --- Gradient Calculation ---
+        batch_size = v_batch.shape[0]
+
+        # 各パラメータの勾配 (d〇〇) を計算
+        db = np.mean(v_batch, axis=0) - np.mean(vk, axis=0)
+        dc = np.mean(h0_prob, axis=0) - np.mean(hk_prob, axis=0)
+        
+        pos_grad_W = np.dot(v_batch.T, h0_prob) / batch_size
+        neg_grad_W = np.dot(vk.T, hk_prob) / batch_size
+        dW = pos_grad_W - neg_grad_W
+
+        v_sq_mean = np.mean(v_batch**2, axis=0)
+        vk_sq_mean = np.mean(vk**2, axis=0)
+        sig2 = self.get_var()
+        sigmoid_gamma = 1.0 / (1.0 + np.exp(-np.clip(self.gamma, -50, 50)))
+        dgamma = (sigmoid_gamma * (v_sq_mean - vk_sq_mean)) / (2 * sig2**2)
+
+        # ==========================================
+        # 2. Adam によるパラメータの更新
+        # ==========================================
+        self.t += 1  # 更新回数をカウントアップ
+
+        # --- (1) 可視層バイアス b の更新 ---
+        self.m_b = self.beta1 * self.m_b + (1 - self.beta1) * db
+        self.v_b = self.beta2 * self.v_b + (1 - self.beta2) * (db ** 2)
+        m_hat_b = self.m_b / (1 - self.beta1 ** self.t)
+        v_hat_b = self.v_b / (1 - self.beta2 ** self.t)
+        self.b += lr * m_hat_b / (np.sqrt(v_hat_b) + self.epsilon)
+
+        # --- (2) 隠れ層バイアス c の更新 ---
+        self.m_c = self.beta1 * self.m_c + (1 - self.beta1) * dc
+        self.v_c = self.beta2 * self.v_c + (1 - self.beta2) * (dc ** 2)
+        m_hat_c = self.m_c / (1 - self.beta1 ** self.t)
+        v_hat_c = self.v_c / (1 - self.beta2 ** self.t)
+        self.c += lr * m_hat_c / (np.sqrt(v_hat_c) + self.epsilon)
+
+        # --- (3) 重み行列 W の更新 ---
+        self.m_W = self.beta1 * self.m_W + (1 - self.beta1) * dW
+        self.v_W = self.beta2 * self.v_W + (1 - self.beta2) * (dW ** 2)
+        m_hat_W = self.m_W / (1 - self.beta1 ** self.t)
+        v_hat_W = self.v_W / (1 - self.beta2 ** self.t)
+        self.W += lr * m_hat_W / (np.sqrt(v_hat_W) + self.epsilon)
+
+        # --- (4) 分散パラメータ gamma の更新 ---
+        self.m_gamma = self.beta1 * self.m_gamma + (1 - self.beta1) * dgamma
+        self.v_gamma = self.beta2 * self.v_gamma + (1 - self.beta2) * (dgamma ** 2)
+        m_hat_gamma = self.m_gamma / (1 - self.beta1 ** self.t)
+        v_hat_gamma = self.v_gamma / (1 - self.beta2 ** self.t)
+        self.gamma += lr * m_hat_gamma / (np.sqrt(v_hat_gamma) + self.epsilon)
 
     # ==========================================
     # 対数尤度計算メソッド
