@@ -6,13 +6,16 @@ import os
 # ==========================================
 # 設定
 # ==========================================
-#INPUT_FILE = "./diabetes/【alpha_2.0】.txt"
-INPUT_FILE = "./wine/【alpha_2.0】.txt"
+INPUT_FILE = "./diabetes/【alpha_2.0】.txt"
 OUTPUT_IMAGE = "log_likelihood_plot.png"
 
 # 描画するエポックの範囲を指定 (最初から最後まで描画する場合は None に設定してください)
-START_EPOCH = None
+START_EPOCH = 1200
 END_EPOCH = None
+
+# 描画する対象の列名（グラフ）をリストで指定してください。
+# すべての "Mean" 列を描画したい場合は None に設定してください。
+PLOT_COLUMNS = ["beta_max/4","beta_max","4beta_max"] 
 
 # --- フォント・レイアウト設定 ---
 TICK_FONT_SIZE = 25      # 軸の目盛りのフォントサイズ
@@ -22,10 +25,6 @@ LEGEND_FONT_SIZE = 25    # 凡例のフォントサイズ
 # 'best': グラフの線と重ならない最適な位置を自動で探して配置します
 # その他手動設定: 'upper right', 'lower right', 'upper left', 'lower left' など
 LEGEND_LOC = 'best'
-
-# 描画する対象の列名（グラフ）をリストで指定してください。
-# すべての "Mean" 列を描画したい場合は None に設定してください。
-PLOT_COLUMNS = ["beta_max/4","beta_max","4beta_max"] #α=0.5
   
 def main():
     # 1. ファイルの存在確認
