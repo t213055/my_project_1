@@ -68,7 +68,6 @@ class GBRBM:
         
         # パラメータ: 指定された標準偏差(weight_std)で初期化
         self.W = np.random.normal(0, weight_std/(np.sqrt(n_v + n_h)), (n_v, n_h))
-        #print("weight_std:",weight_std, "n_v:",n_v, "n_h:",n_h, "sigma:",weight_std/(np.sqrt(n_v + n_h)))
         
         # 可視層のバイアスパラメータ
         self.b = np.ones(n_v) * 0.001
