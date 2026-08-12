@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker # 追加: 目盛りの設定用モジュール
+import matplotlib.ticker as ticker # 目盛りの設定用モジュール
 import os
 
 # ==========================================
@@ -10,8 +10,8 @@ INPUT_FILE = "Exp-results.txt"
 OUTPUT_IMAGE = "log_likelihood_plot.png"
 
 # 描画するエポックの範囲を指定 (最初から最後まで描画する場合は None に設定してください)
-START_EPOCH = 200
-END_EPOCH = 600
+START_EPOCH = 350
+END_EPOCH = 500
 
 # --- フォント・レイアウト設定 ---
 TICK_FONT_SIZE = 25      # 軸の目盛りのフォントサイズ
@@ -19,12 +19,10 @@ LEGEND_FONT_SIZE = 25    # 凡例のフォントサイズ
 
 # 凡例の配置位置を指定
 # 'best': グラフの線と重ならない最適な位置を自動で探して配置します
-# その他手動設定: 'upper right', 'lower right', 'upper left', 'lower left' など
 LEGEND_LOC = 'best'
 
 # 描画する対象の列名（グラフ）をリストで指定してください。
-# すべての "Mean" 列を描画したい場合は None に設定してください。
-PLOT_COLUMNS = ["chi_Mean_0.25", "chi_Mean_1.0"]#, "chi_Mean_4.0"] #α=1.0
+PLOT_COLUMNS = ["chi_Mean_0.25", "chi_Mean_1.0", "chi_Mean_4.0"] #α=1.0
 
 def main():
     # 1. ファイルの存在確認
@@ -84,7 +82,6 @@ def main():
     plt.figure(figsize=(10, 6))
     
     for i, (idx, col) in enumerate(zip(mean_indices, mean_columns)):
-        # 該当列のデータを抽出
         mean_values = data[:, idx]
         
         # --- ラベルと色、線種の判定 ---
@@ -101,7 +98,6 @@ def main():
             c = 'red'
             ls = '--'  # 破線
         else:
-            # 想定外の列名の場合はそのまま出力して黒の破線にする
             label_text = col
             c = 'black'
             ls = '--'
@@ -109,15 +105,45 @@ def main():
         # プロット
         plt.plot(epochs, mean_values, color=c, linestyle=ls, linewidth=2.5, label=label_text)
 
-    # グラフの装飾
-    # 追加: X軸の目盛りを強制的に整数（自然数）にする
-    plt.gca().xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+    # ==========================================
+    # グラフの装飾 (目盛りのカスタム設定)
+    # ==========================================
+    # --- Y軸: 最大5個の目盛りに制限 (nbins=4 で 5個の区切り) ---
+    plt.gca().yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
     
-    plt.xticks(fontsize=TICK_FONT_SIZE)
+    # --- X軸: 10の倍数で最大6個、開始・終了を必ず含む ---
+    actual_start = int(epochs.min())
+    actual_end = int(epochs.max())
+    
+    # 確実な10の倍数に丸める
+    start_tick = (actual_start // 10) * 10
+    end_tick = int(np.ceil(actual_end / 10.0)) * 10
+    span = end_tick - start_tick
+    
+    # 最大6個(5区間)の目盛りを作成するため、10の倍数のステップ幅を計算
+    step = int(np.ceil((span / 5.0) / 10.0) * 10)
+    if step == 0:
+        step = 10
+        
+    x_ticks = list(range(start_tick, end_tick, step))
+    # 終了エポックを必ず含める
+    if not x_ticks or x_ticks[-1] != end_tick:
+        x_ticks.append(end_tick)
+        
+    # もし目盛りが6個を超えてしまった場合の保険処理
+    while len(x_ticks) > 6:
+        step += 10
+        x_ticks = list(range(start_tick, end_tick, step))
+        if not x_ticks or x_ticks[-1] != end_tick:
+            x_ticks.append(end_tick)
+
+    # 計算したリストをX軸の目盛りに強制設定
+    plt.xticks(x_ticks, fontsize=TICK_FONT_SIZE)
+    # グラフの左右の余白を消してスッキリさせる
+    plt.xlim(start_tick, end_tick) 
+    
     plt.yticks(fontsize=TICK_FONT_SIZE)
-    
     plt.grid(True, linestyle='--')
-    # 凡例の配置を LEGEND_LOC で指定
     plt.legend(loc=LEGEND_LOC, fontsize=LEGEND_FONT_SIZE)
     plt.tight_layout()
 
@@ -125,7 +151,6 @@ def main():
     plt.savefig(OUTPUT_IMAGE, dpi=150)
     print(f"\nプロット完了。画像を保存しました: {os.path.abspath(OUTPUT_IMAGE)}")
     
-    # グラフを画面にも表示
     plt.show()
 
 if __name__ == "__main__":
