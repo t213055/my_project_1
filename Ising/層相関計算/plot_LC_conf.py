@@ -15,12 +15,17 @@ ALPHA_LIST = [0.5, 1.0, 2.0]
 # 描画する β (beta) の範囲を指定 (制限しない場合は None に設定してください)
 START_BETA = 0.8
 END_BETA = None
-FS = 25  # フォントサイズ
-# --- フォント・デザイン設定 ---
+
+# --- フォント・線の太さ デザイン設定 ---
+LINE_WIDTH = 5           # グラフの線の太さ
+FS = 30                  # 基本のフォントサイズ
 FONT_SIZE_LABEL = FS     # 軸ラベルのフォントサイズ
 FONT_SIZE_TICK = FS      # 軸のメモリのフォントサイズ
 FONT_SIZE_LEGEND = FS    # 凡例のフォントサイズ
 FONT_SIZE_TEXT = FS      # 最大値テキストのフォントサイズ
+
+# ★ Y軸の目盛りを表示するかどうか (True: 表示, False: 非表示)
+SHOW_Y_TICKS = False
 
 # 凡例の配置位置 (例: 'upper right', 'lower right', 'upper left', 'best' など)
 LEGEND_LOC = 'upper left'
@@ -53,10 +58,14 @@ def main():
     chis = data[:, 6]
 
     # 3. グラフの準備
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(9, 6))
     
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
     line_styles = ['-', '-', '-']
+    
+    # 描画された全βの最小値・最大値を記録するための変数（X軸目盛り計算用）
+    plotted_min_beta = float('inf')
+    plotted_max_beta = float('-inf')
     
     # 4. 指定された alpha ごとにデータを抽出してプロット
     for i, alpha_target in enumerate(ALPHA_LIST):
@@ -77,11 +86,15 @@ def main():
         b_vals = betas[mask]
         chi_vals = chis[mask]
         
-        # グラフのプロット
+        # 描画範囲の更新
+        plotted_min_beta = min(plotted_min_beta, b_vals.min())
+        plotted_max_beta = max(plotted_max_beta, b_vals.max())
+        
+        # グラフのプロット (LINE_WIDTH を適用)
         c = colors[i % len(colors)]
         ls = line_styles[i % len(line_styles)]
         label_text = f"α = {alpha_target}"
-        plt.plot(b_vals, chi_vals, color=c, linestyle=ls, linewidth=2, label=label_text)
+        plt.plot(b_vals, chi_vals, color=c, linestyle=ls, linewidth=LINE_WIDTH, label=label_text)
         
         # ----------------------------------------------------
         # 表示範囲内での最大値（ピーク）の特定とテキスト表示
@@ -105,14 +118,32 @@ def main():
                  bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
 
     # 5. グラフの装飾 (タイトル削除済み)
-    plt.xlabel("β", fontsize=FONT_SIZE_LABEL)
-    plt.ylabel("χ", fontsize=FONT_SIZE_LABEL)
+    # ★ 軸ラベル (X軸の"β", Y軸の"χ") を描画しないようにコメントアウト
+    # plt.xlabel("β", fontsize=FONT_SIZE_LABEL)
+    # plt.ylabel("χ", fontsize=FONT_SIZE_LABEL)
     
-    plt.xticks(fontsize=FONT_SIZE_TICK)
+    # --- X軸の目盛りを 0.10 の自然数倍のみに設定 ---
+    if plotted_min_beta != float('inf') and plotted_max_beta != float('-inf'):
+        # 自然数倍（0.1, 0.2, 0.3...）とするため、インデックスは1から開始するように制御
+        min_idx = max(1, int(np.ceil(plotted_min_beta / 0.1 - 1e-9)))
+        max_idx = int(np.floor(plotted_max_beta / 0.1 + 1e-9))
+        
+        # 丸め誤差を防ぐために round で小数を処理
+        x_ticks = [round(idx * 0.1, 1) for idx in range(min_idx, max_idx + 1)]
+        plt.xticks(x_ticks, fontsize=FONT_SIZE_TICK)
+    
     # y軸は非常に値が小さく、また大きくなるため対数スケールに設定
     plt.yscale('log')
-    plt.yticks(fontsize=FONT_SIZE_TICK)
     
+    # --- ★ Y軸の目盛り（数値テキスト）を完全に消去 ---
+    if SHOW_Y_TICKS:
+        plt.yticks(fontsize=FONT_SIZE_TICK)
+    else:
+        # 主目盛りと副目盛りの両方のフォーマッタを空に設定することで、
+        # 対数スケール特有の「3 x 10^-2」のような文字も強制的に非表示にする
+        plt.gca().yaxis.set_major_formatter(plt.NullFormatter())
+        plt.gca().yaxis.set_minor_formatter(plt.NullFormatter())
+
     plt.grid(True, linestyle='--', alpha=0.6)
     plt.legend(loc=LEGEND_LOC, fontsize=FONT_SIZE_LEGEND)
     plt.tight_layout()
