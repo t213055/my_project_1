@@ -85,7 +85,7 @@ def main():
         results[w_std] = mean_ll
 
     # 3. 結果を "Exp-results.txt" に出力
-    output_filename = "Exp-results.txt"
+    output_filename = "Exp-results1.txt"
     print("\n=============================================")
     print(f" All trials processed. Exporting data to {output_filename}...")
     print("=============================================")

@@ -20,7 +20,7 @@ from sklearn.preprocessing import StandardScaler
 # 0. ハイパーパラメータと実験全体の設定
 # ==========================================
 # --- 学習（生徒モデル）の設定 ---
-S_NH = 7                # 生徒モデルの隠れ変数の数 (Ising)
+S_NH = 26                # 生徒モデルの隠れ変数の数 (Ising)
 LEARNING_RATE = 0.001   # 学習率
 EPOCHS = 1000           # エポック数
 BATCH_SIZE = 16        # バッチサイズ
@@ -28,7 +28,7 @@ K_CD = 1                # Contrastive Divergence のステップ数
 N_TRIAL = 10            # 1つの条件の試行回数
 
 # 比較する weight_std のリスト
-WEIGHT_STD_BASE = 1.11
+WEIGHT_STD_BASE = 0.94
 WEIGHT_STD_LIST = [WEIGHT_STD_BASE / 4.0, WEIGHT_STD_BASE, WEIGHT_STD_BASE * 4.0]
 
 def main(): 
@@ -85,7 +85,7 @@ def main():
         results[w_std] = mean_ll
 
     # 3. 結果を "Exp-results.txt" に出力
-    output_filename = "Exp-results.txt"
+    output_filename = "Exp-results3.txt"
     print("\n=============================================")
     print(f" All trials processed. Exporting data to {output_filename}...")
     print("=============================================")

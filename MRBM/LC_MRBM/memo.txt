@@ -1,0 +1,11 @@
+\int_{-\infty}^{\infty} Dz
+{
+    \frac{\sum_{\lfloor \frac{t}{2} \rfloor + 1}^{t} exp(A*(v)**2) {(v)**2 cosh(B*v) + z*v*sinh(B*v)}}
+    {\frac{1}{2}*\delta_{t \in \text{even}} + \sum_{\lfloor \frac{t}{2} \rfloor + 1}^{t} exp(A*(v)**2) cosh(B*v)}
+}
+
+A \coloneqq \frac{1}{2}(\frac{\alpha * \beta**2}{1 + \alpha} - \hat{q}_v)
+B \coloneqq b + z*\sqrt{\hat{q}_v}
+v \in {
+    \frac{2k-t}{t} \mid k=0,1,2, \ldots, t ; t \in \mathbb{N}
+}

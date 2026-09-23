@@ -9,18 +9,15 @@ import os
 # ここでそれぞれの画像のエポック数を調整できます。
 # 最初から描画する場合は "start" を None に設定してください。
 PLOT_CONFIGS = [
-    {"start": None, "end": None, "filename": "LL_0_2500.png"},
-    {"start": None, "end": 100,  "filename": "LL_0_100.png"},
-    {"start": None, "end": 200, "filename": "LL_0_200.png"},
-    {"start": None, "end": 1000,  "filename": "LL_0_1000.png"},
-    {"start": 900, "end": 1000,  "filename": "LL_900_1000.png"},
-    {"start": 200, "end": 2500,  "filename": "LL_200_2500.png"},
-    {"start": 2000, "end": 2500, "filename": "LL_2000_2500.png"},
-    {"start": 2400, "end": 2445, "filename": "LL_2400_2445.png"},
-    {"start": 2400, "end": 2500, "filename": "LL_2400_2500.png"},
+    #{"start": None, "end": None, "filename": "LL_0_2500.png"},
+    {"start": None, "end": 100,  "filename": "(2)LL_0_100.png"},
+    #{"start": None, "end": 1000,  "filename": "LL_0_1000.png"},
+    #{"start": 200, "end": 2500,  "filename": "LL_200_2500.png"},
+    #{"start": 2000, "end": 2500, "filename": "LL_2000_2500.png"},
+    #{"start": 2300, "end": 2400, "filename": "LL_2300_2400.png"},
+    #{"start": 2400, "end": 2500, "filename": "LL_2400_2500.png"},
 ]
-
-"""
+""" #wineデータセットの場合
 PLOT_CONFIGS = [
     {"start": None, "end": None, "filename": "LL_0_1000.png"},
     {"start": None, "end": 20,  "filename": "LL_0_20.png"},
@@ -36,14 +33,14 @@ OUTPUT_PATH = "./diabetes/adam/alpha_2.0/"
 #OUTPUT_PATH = "./wine/adam/alpha_1.0/"
 
 # 描画する対象の列名（グラフ）をリストで指定してください。
-PLOT_COLUMNS = ["beta_max/4", "beta_max", "4beta_max"] 
+PLOT_COLUMNS = ["beta_max/4", "beta_max"]#, "4beta_max"] 
 
 # --- フォント・レイアウト設定 ---
 TICK_FONT_SIZE = 30      # 軸の目盛りのフォントサイズ
 LEGEND_FONT_SIZE = 30    # 凡例のフォントサイズ
 
 # Y軸の目盛りを表示するかどうか (True: 表示, False: 非表示)
-SHOW_Y_TICKS = True
+SHOW_Y_TICKS = False
 
 # 凡例の配置位置を指定
 # 'best': グラフの線と重ならない最適な位置を自動で探して配置します
@@ -152,40 +149,32 @@ def main():
         # --- Y軸: 最大5個の目盛りに制限 ---
         plt.gca().yaxis.set_major_locator(ticker.MaxNLocator(nbins=4)) 
         
-        # --- X軸: 10の倍数で最大6個、開始・終了を必ず含む ---
+        # --- X軸: 100の倍数のみ表示し、枠は実際のエポックに合わせる ---
         actual_start = int(epochs.min()) 
         actual_end = int(epochs.max()) 
         
-        # 確実な10の倍数に丸める
-        start_tick = (actual_start // 10) * 10 
-        end_tick = int(np.ceil(actual_end / 10.0)) * 10 
-        span = end_tick - start_tick 
+        # 表示範囲内の最小と最大の100の倍数を計算
+        start_tick = int(np.ceil(actual_start / 100.0)) * 100 
+        end_tick_max = int(np.floor(actual_end / 100.0)) * 100 
         
-        # 最大6個(5区間)の目盛りを作成するため、10の倍数のステップ幅を計算
+        span = actual_end - actual_start 
+        
+        # 目盛りが多すぎないよう(最大6個程度)、ステップ幅も100の倍数で計算
         if span > 0:
-            step = int(np.ceil((span / 5.0) / 10.0) * 10) 
+            step = int(np.ceil((span / 5.0) / 100.0) * 100) 
             if step == 0: 
-                step = 10 
+                step = 100 
         else:
-            step = 10
+            step = 100
             
-        x_ticks = list(range(start_tick, end_tick, step)) 
-        
-        # 終了エポックを必ず含める
-        if not x_ticks or x_ticks[-1] != end_tick: 
-            x_ticks.append(end_tick) 
-            
-        # もし目盛りが6個を超えてしまった場合の保険処理
-        while len(x_ticks) > 6: 
-            step += 10 
-            x_ticks = list(range(start_tick, end_tick, step)) 
-            if not x_ticks or x_ticks[-1] != end_tick: 
-                x_ticks.append(end_tick) 
+        # 100の倍数のみで目盛りリストを生成 (end_tick_maxを含むように +1)
+        x_ticks = list(range(start_tick, end_tick_max + 1, step)) 
 
         # 計算したリストをX軸の目盛りに強制設定
         plt.xticks(x_ticks, fontsize=TICK_FONT_SIZE) 
-        # グラフの左右の余白を消してスッキリさせる
-        plt.xlim(start_tick, end_tick)  
+        
+        # ★グラフの表示範囲(枠)は、中途半端な数字でも実際のエポックに厳密に合わせる
+        plt.xlim(actual_start, actual_end)  
         
         # Y軸の表示/非表示の切り替え
         if SHOW_Y_TICKS:
