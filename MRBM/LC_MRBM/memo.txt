@@ -1,3 +1,13 @@
+#鞍点の計算
+
+スピングラス秩序と補助変数のベクトル表示
+
+初期値(1で初期化)
+q = np.array(np.ones(2))
+q_hat = np.array(np.ones(2))
+
+可視層のスピングラス秩序：
+q[0] =
 \int_{-\infty}^{\infty} Dz
 {
     \frac{\sum_{\lfloor \frac{t}{2} \rfloor + 1}^{t} exp(A*(v)**2) {(v)**2 cosh(B*v) + z*v*sinh(B*v)}}
@@ -9,3 +19,14 @@ B \coloneqq b + z*\sqrt{\hat{q}_v}
 v \in {
     \frac{2k-t}{t} \mid k=0,1,2, \ldots, t ; t \in \mathbb{N}
 }
+
+隠れ層のスピングラス秩序
+q[1] =
+\int_{-\infty}^{\infty} Dz
+{
+    tanh(c + z\sqrt(\hat{q}_h))
+}
+
+鞍点に対する補助変数の計算（行列形式）
+T_alpha = (1 + alpha)**-1 * np.array([[0, alpha],[1, 0]]) 
+q_hat = beta**2 * T_alpha @ q
