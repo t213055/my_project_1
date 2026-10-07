@@ -1,21 +1,21 @@
 #特定のαにおける層相関の計算を行うスクリプト
 import numpy as np
-#import matplotlib as plt
+import matplotlib.pyplot as plt
 #import csv
 #import sys
 from scipy.integrate import quad
 from numpy.polynomial.hermite import hermgauss
 
 #モデルのパラメータ
-eps = 1e-16
+eps = 1e-10
 b = eps
 c = eps
-alpha = 1.0
-t = 4
+alpha = 0.5
+t = 2
 
 #温度のスタート, ゴール, ステップサイズ
-beta_init = 0.1 + 1e-16
-beta_limit = 0.1 + 2e-16
+beta_init = 0.0 + 1e-16
+beta_limit = 2.0
 beta_step = 0.01
 
 #収束判定、ループ上限回数、緩和法の強さ
@@ -66,7 +66,7 @@ def SP(beta, q, q_hat, T_alpha): #alphaが変わる度にT_alphaも変わるた�
 
 def Effective_Susceptibility_Matrices(q_hat):
     global v_k
-    v_k = v_k[np.newaxis, :]
+    v_k_row = v_k[np.newaxis, :]
     #betaにおける可視層/隠れ層のモーメント
     #AはSP()で計算 → main文内でグローバル変数として扱う
 
@@ -79,68 +79,47 @@ def Effective_Susceptibility_Matrices(q_hat):
 
     #z_iに依存する変数を一括計算
     B_i = b + z_i * np.sqrt(q_hat[0])
-    B_i = B_i[:, np.newaxis]
+    B_i = B_i[:, np.newaxis] # shape: (deg, 1)
     
     #-------------------
-    #np.sumで和をとる方向がごっちゃになっているかも。B_iの和はまだ計算しない。計算するのは、v_kについての和のみ
+    #np.sumで和をとる方向がごっちゃになっているかも。B_iの和はまだ計算しない。計算するのは、v_k_rowについての和のみ
     #-------------------
     #↓↓
-
     #モーメントの分母：Denominator, 分子：Numerator （_1は1次, _2は2次）
-    D = delta_term + 2 * np.sum(np.exp(A * v_k**2) * np.cosh(B_i * v_k))
-    N_1 = delta_term + 2 * np.sum(v_k * np.exp(A * v_k**2) * np.sinh(B_i * v_k))
-    N_2 = delta_term + 2 * np.sum(v_k**2 * np.exp(A * v_k**2) * np.cosh(B_i * v_k))
+    D = delta_term + 2 * np.sum(np.exp(A * v_k_row**2) * np.cosh(B_i * v_k_row), axis=1)
+    #N_1 = delta_term + 2 * np.sum(v_k_row * np.exp(A * v_k_row**2) * np.sinh(B_i * v_k_row), axis=1)
+    #N_2 = delta_term + 2 * np.sum(v_k_row**2 * np.exp(A * v_k_row**2) * np.cosh(B_i * v_k_row), axis=1)
+    N_1 = 2 * np.sum(v_k_row * np.exp(A * v_k_row**2) * np.sinh(B_i * v_k_row), axis=1)
+    N_2 = 2 * np.sum(v_k_row**2 * np.exp(A * v_k_row**2) * np.cosh(B_i * v_k_row), axis=1)
     ## --モーメント-- ##
     Ev1 = N_1 / D
     Ev2 = N_2 / D
     Eh1 = np.tanh(c + z_i * np.sqrt(q_hat[1]))
-    print("Ev1:", Ev1.shape(), "Ev2:", Ev2.shape(), "Eh1:", Eh1.shape())
+    #print("Ev1:", Ev1.shape, "Ev2:", Ev2.shape, "Eh1:", Eh1.shape)
     
-"""
     #実行感受率行列の要素の計算
-    V00 = Ev2 - Ev1**2
-    V11 = 1 - Eh1**2    
-    V = ([[V00, 0], [0, V11]])
+    V00 = np.sum((Ev2 - Ev1**2) * weights)
+    V11 = np.sum((1 - Eh1**2) * weights)
+    V = ([[V00, 0], [0, V11]])#; print("V", V)
 
-    U00 = Ev2 * Ev1 - Ev1**3
-    U11 = Eh1 - Eh1**3
-    U = ([[U00, 0], [0, U11]])
-"""
-"""
-        B = b + z * np.sqrt(q_hat[0])
+    U00 = np.sum((Ev2 * Ev1 - Ev1**3) * weights)
+    U11 = np.sum((Eh1 - Eh1**3) * weights)
+    U = ([[U00, 0], [0, U11]])#; print("U", U)
 
-        #モーメントの分母：Denominator
-        D_z = delta_term + 2 * np.sum(np.exp(A * v_k**2) * np.cosh(B * v_k))
-        
-        #1次モーメントの分子：Numerator 
-        N_z_1 = delta_term + 2 * np.sum(v_k * np.exp(A * v_k**2) * np.sinh(B * v_k))
-        
-        #2次モーメントの分子
-        N_z_2 = delta_term + 2 * np.sum(v_k**2 * np.exp(A * v_k**2) * np.cosh(B * v_k))
-        
-        V_moment_1 = N_z_1 / D_z
-        V_moment_2 = N_z_2 / D_z
-        H_moment_1 = np.tanh(c + z * np.sqrt(q_hat[1]))
-        return V_moment_1, V_moment_2, H_moment_1
-    
-    #得られたモーメントを用いて有効感受率行列を定義
-    def integrand_S(z):
-        #
-    #integrandをT ~ Zまで同様に定義
+    W00 = np.sum((Ev2**2 - 4 * Ev2 * Ev1**2 + 3 * Ev1**4) * weights)
+    W11 = np.sum((1 - 4 * Eh1**2 + 3 * Eh1 **4) * weights)
+    W = ([[W00, 0], [0, W11]])#; print("W", W)
+    return V, U, W
 
-    #ガウスエルミート求積法の準備
+def Q_HQ_solver_chi(V, U, W, beta, T_alpha, alpha):
+    M = np.identity(2) - beta**2 * T_alpha @ W
+    B = 2 * beta**2 * T_alpha @ U
+    HQ = np.linalg.solve(M, B)
+    chi = (1 + alpha)**-1 * np.array([[1, 0], [0, alpha]]) @ (V - U @ HQ)
+    return chi
 
-    #ガウスエルミート求積法で有効感受率行列を計算
-
-    return S, T, U, V, W, X, Y, Z
-""" 
-
-"""
-def Q_HQ_solver_chi(X, Y, W, Z, T, beta, T_alpha, alpha):
-    #
-"""
 beta = beta_init
-v_k = visible_variable_array(t)
+v_k = visible_variable_array(t); print("v_k:\n", v_k)
 delta_term = 1.0 if (t % 2 == 0) else 0.0 #tが偶数 → 1/2 奇数 → 0
 
 #初期値設定（秩序パラメータと補助変数）
@@ -151,12 +130,37 @@ q_hat_init = beta**2 * T_alpha @ q_init
 q = q_init.copy()
 q_hat = q_hat_init.copy()
 
+beta_list = []
+chi_list = []
+
 while beta <= beta_limit:
     #鞍点の計算 内部で収束するまでループする
     q, q_hat, A = SP(beta, q, q_hat, T_alpha)
-    print(f"beta: {beta:.3f}, q: {q}, q_hat: {q_hat}", f"A: {A:.6e}")
+    
+    #実行感受率行列を計算
+    V, U, W = Effective_Susceptibility_Matrices(q_hat)
 
-    Effective_Susceptibility_Matrices(q_hat)
+    #感受率行列の計算（Q, HQをソルバーで計算 → χを計算）
+    chi = Q_HQ_solver_chi(V, U, W, beta, T_alpha, alpha)
+    #print(f"beta: {beta:.3f}", q: {q}, q_hat: {q_hat}", f"A: {A:.6e}", f"chi: {chi[0, 1]:.10e}")
+    beta_list.append(beta)
+    chi_list.append(np.abs(chi[0, 1]))
+    print(f"beta: {beta:.3f}", f"chi: {chi[0, 1]:.10e}")
 
-    #Q, HQをソルバーで計算 → χを計算 #sg感受率行列の計算
     beta += beta_step
+
+#グラフの描画
+plt.figure(figsize=(8, 6))
+plt.plot(beta_list, chi_list, marker='o', markersize=3, linestyle='-', color='b')
+
+# 軸ラベルとタイトル（数式にはLaTeX記法を使用）
+plt.xlabel(r'$\beta$', fontsize=14)
+plt.ylabel(r'$\chi_{vh}$', fontsize=14)
+plt.title(f'Layer Correlation vs Inverse Temperature (t={t}, alpha={alpha})', fontsize=14)
+
+# グリッドの表示とレイアウト調整
+plt.grid(True, linestyle='--', alpha=0.7)
+plt.tight_layout()
+
+# グラフを表示
+plt.show()
