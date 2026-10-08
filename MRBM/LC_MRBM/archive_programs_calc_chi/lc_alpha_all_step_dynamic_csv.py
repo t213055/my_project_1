@@ -25,7 +25,7 @@ TEXT_OFFSET_Y = 0.0
 eps = 0.001
 b = eps
 c = eps
-t = 1
+t = 3
 
 # 温度のスタート, ゴール
 beta_init = 0.0 + 1e-16
@@ -86,8 +86,8 @@ def Effective_Susceptibility_Matrices(q_hat, A, v_k):
     B_i = B_i[:, np.newaxis] 
     
     D = delta_term + 2 * np.sum(np.exp(A * v_k_row**2) * np.cosh(B_i * v_k_row), axis=1)
-    N_1 =  delta_term + 2 * np.sum(v_k_row * np.exp(A * v_k_row**2) * np.sinh(B_i * v_k_row), axis=1)
-    N_2 =  delta_term + 2 * np.sum(v_k_row**2 * np.exp(A * v_k_row**2) * np.cosh(B_i * v_k_row), axis=1)
+    N_1 = 2 * np.sum(v_k_row * np.exp(A * v_k_row**2) * np.sinh(B_i * v_k_row), axis=1)
+    N_2 = 2 * np.sum(v_k_row**2 * np.exp(A * v_k_row**2) * np.cosh(B_i * v_k_row), axis=1)
     
     Ev1 = N_1 / D
     Ev2 = N_2 / D
