@@ -4,15 +4,32 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import re
+from adjustText import adjust_text
 
 # ==========================================
 # グラフ描画・調整用パラメータ (スクリプト冒頭で調整可能)
 # ==========================================
+# タイトル表示フラグ (True: つける, False: つけない)
+SHOW_TITLE = False
+
+# 表示する alpha のリスト (ここで設定した alpha のみがグラフ化される)
+DISPLAY_ALPHAS = [0.5, 1.0, 2.0]
+
+# 描画範囲の設定 (ここで設定した範囲のみをグラフ化)
+BETA_START = 1.56
+BETA_END = 1.7
+
+# フォントサイズの設定
 TITLE_FONT_SIZE = 16       # グラフタイトルのフォントサイズ
-LEGEND_FONT_SIZE = 12      # 凡例のフォントサイズ
+LEGEND_FONT_SIZE = 20      # 凡例のフォントサイズ
+AXIS_LABEL_FONT_SIZE = 20  # 軸ラベル(betaやchi)のフォントサイズ
+TICK_FONT_SIZE = 20        # 軸のメモリ数字のフォントサイズ
+BETA_MAX_FONT_SIZE = 20    # グラフ上の beta_max テキストのフォントサイズ
+
+# その他の設定
 LEGEND_LOC = 'best'        # 凡例の位置 ('upper right', 'lower right', 'best' など)
 LINE_WIDTH = 2.0           # 線の太さ
-MARKER_SIZE = 2            # マーカーのサイズ (細かいデータが多いため少し小さめを推奨)
+MARKER_SIZE = 2            # マーカーのサイズ
 
 # 各alphaや変数のプロット色設定
 COLORS = ['r', 'g', 'b', 'm', 'c', 'k', 'y', 'orange']
@@ -21,7 +38,6 @@ COLORS = ['r', 'g', 'b', 'm', 'c', 'k', 'y', 'orange']
 # ファイル選択関数
 # ==========================================
 def select_file():
-    # カレントディレクトリの .txt ファイルを取得
     txt_files = glob.glob('*.txt')
     if not txt_files:
         print("エラー: カレントディレクトリに .txt ファイルが見つかりません。")
@@ -45,19 +61,15 @@ def select_file():
 # ファイル名から A(日時), B(esp), C(t) を抽出
 # ==========================================
 def parse_filename(filename):
-    # 例: 202601011505_esp=1e-3_t=2.txt
     basename = os.path.basename(filename)
-    # 拡張子を除去
     name_without_ext = os.path.splitext(basename)[0]
     
-    # 3つのパーツに分ける想定
     parts = name_without_ext.split('_')
     if len(parts) >= 3:
         A = parts[0]
         B = parts[1]
         C = parts[2]
     else:
-        # 想定外のフォーマットの場合
         A = "UnknownTime"
         B = "esp=Unknown"
         C = "t=Unknown"
@@ -65,33 +77,56 @@ def parse_filename(filename):
     return A, B, C
 
 # ==========================================
-# モード1: 層相関のグラフ (chi_A.png)
+# モード1: 層相関のグラフ (chi_A.svg)
 # ==========================================
 def plot_chi(df, A, B, C):
     plt.figure(figsize=(8, 6))
     
-    alphas = sorted(df['alpha'].unique())
+    # DISPLAY_ALPHAS に含まれ、かつ df に存在する alpha のみを抽出
+    alphas = sorted([a for a in df['alpha'].unique() if a in DISPLAY_ALPHAS])
+    texts = []
+    
     for i, alpha in enumerate(alphas):
         df_alpha = df[df['alpha'] == alpha]
         
-        betas = df_alpha['beta'].values
-        chis = df_alpha['abs(chi[0, 1])'].values
+        # 設定された BETA_START ~ BETA_END の範囲のデータのみを抽出
+        df_filtered = df_alpha[(df_alpha['beta'] >= BETA_START) & (df_alpha['beta'] <= BETA_END)]
+        
+        if df_filtered.empty:
+            continue
+            
+        betas = df_filtered['beta'].values
+        chis = df_filtered['abs(chi[0, 1])'].values
         
         plt.plot(betas, chis, marker='o', markersize=MARKER_SIZE, 
                  linestyle='-', linewidth=LINE_WIDTH, color=COLORS[i % len(COLORS)], 
                  label=rf'$\alpha={alpha}$')
         
-        # 最大値のプロット
+        # その描画範囲内での最大値のプロット
         max_idx = np.argmax(chis)
         max_beta = betas[max_idx]
         max_chi = chis[max_idx]
+        
         plt.plot(max_beta, max_chi, marker='*', markersize=MARKER_SIZE+8, color=COLORS[i % len(COLORS)])
-        plt.text(max_beta + 0.02, max_chi, rf'$\beta={max_beta:.4f}$', 
-                 color=COLORS[i % len(COLORS)], fontsize=10, fontweight='bold')
+        
+        # adjustText で後から調整するため、テキストオブジェクトをリストに保存
+        texts.append(plt.text(max_beta, max_chi, rf'$\beta={max_beta:.2f}$', 
+                              color=COLORS[i % len(COLORS)], fontsize=BETA_MAX_FONT_SIZE, fontweight='bold'))
 
-    plt.xlabel(r'$\beta$', fontsize=14)
-    plt.ylabel(r'$|\chi_{vh}|$', fontsize=14)
-    plt.title(f"{B}   |   {C}", fontsize=TITLE_FONT_SIZE)
+    # テキストの重なりを自動調整し、必要に応じて引き出し線を引く
+    if texts:
+        adjust_text(texts, arrowprops=dict(arrowstyle="-", color='k', lw=0.5))
+
+    # フォントサイズを一括適用
+    plt.xlabel(r'$\beta$', fontsize=AXIS_LABEL_FONT_SIZE)
+    plt.ylabel(r'$|\chi_{vh}|$', fontsize=AXIS_LABEL_FONT_SIZE)
+    plt.xticks(fontsize=TICK_FONT_SIZE)
+    plt.yticks(fontsize=TICK_FONT_SIZE)
+    
+    if SHOW_TITLE:
+        plt.title(f"{B}   |   {C}", fontsize=TITLE_FONT_SIZE)
+        
+    plt.xlim([BETA_START, BETA_END])
     plt.legend(loc=LEGEND_LOC, fontsize=LEGEND_FONT_SIZE)
     plt.grid(True, linestyle='--', alpha=0.7)
     plt.tight_layout()
@@ -105,30 +140,39 @@ def plot_chi(df, A, B, C):
 # モード2: 鞍点の推移のグラフ (sp_A.svg)
 # ==========================================
 def plot_saddle_points(df, A, B, C):
-    alphas = sorted(df['alpha'].unique())
+    # DISPLAY_ALPHAS に含まれ、かつ df に存在する alpha のみを抽出
+    alphas = sorted([a for a in df['alpha'].unique() if a in DISPLAY_ALPHAS])
     num_alphas = len(alphas)
     
-    # 画像①・②の要件: 行方向(q, q_hat) = 2, 列方向 = alphaの種類数
+    if num_alphas == 0:
+        print("指定された DISPLAY_ALPHAS に該当するデータがありません。")
+        return
+
     fig, axes = plt.subplots(nrows=2, ncols=num_alphas, figsize=(5 * num_alphas, 8), sharex=True)
     
-    # alphaが1種類しかない場合のaxesの次元調整
     if num_alphas == 1:
         axes = axes.reshape(2, 1)
 
-    # グラフ全体の上部にタイトルを表示
-    fig.suptitle(f"{B}   |   {C}", fontsize=TITLE_FONT_SIZE, fontweight='bold')
+    if SHOW_TITLE:
+        fig.suptitle(f"{B}   |   {C}", fontsize=TITLE_FONT_SIZE, fontweight='bold')
 
     for j, alpha in enumerate(alphas):
         df_alpha = df[df['alpha'] == alpha]
-        betas = df_alpha['beta'].values
         
-        q0 = df_alpha['q[0]'].values
-        q1 = df_alpha['q[1]'].values
-        qhat0 = df_alpha['q_hat[0]'].values
-        qhat1 = df_alpha['q_hat[1]'].values
-        chis = df_alpha['abs(chi[0, 1])'].values
+        # 描画範囲のフィルタリング
+        df_filtered = df_alpha[(df_alpha['beta'] >= BETA_START) & (df_alpha['beta'] <= BETA_END)]
         
-        # chiが最大となるbetaの値を特定
+        if df_filtered.empty:
+            continue
+            
+        betas = df_filtered['beta'].values
+        
+        q0 = df_filtered['q[0]'].values
+        q1 = df_filtered['q[1]'].values
+        qhat0 = df_filtered['q_hat[0]'].values
+        qhat1 = df_filtered['q_hat[1]'].values
+        chis = df_filtered['abs(chi[0, 1])'].values
+        
         max_idx = np.argmax(chis)
         beta_max = betas[max_idx]
 
@@ -139,13 +183,13 @@ def plot_saddle_points(df, A, B, C):
         ax_q.plot(betas, q0, marker='o', markersize=MARKER_SIZE, linewidth=LINE_WIDTH, color='b', label='q[0] (Visible)')
         ax_q.plot(betas, q1, marker='s', markersize=MARKER_SIZE, linewidth=LINE_WIDTH, color='r', label='q[1] (Hidden)')
         
-        # 秩序パラメータが立ち上がる場所（= chi最大点）に縦線を引く (画像②の要件)
-        ax_q.axvline(x=beta_max, color='k', linestyle='--', alpha=0.6, label=rf'$\chi$ max ($\beta={beta_max:.4f}$)')
+        # 小数第2位までの表示に変更
+        ax_q.axvline(x=beta_max, color='k', linestyle='--', alpha=0.6, label=rf'$\chi$ max ($\beta={beta_max:.2f}$)')
         
-        ax_q.set_title(rf'$\alpha = {alpha}$', fontsize=14)
-        ax_q.set_ylabel('q', fontsize=14)
+        ax_q.set_ylabel('q', fontsize=AXIS_LABEL_FONT_SIZE)
+        ax_q.tick_params(axis='both', which='major', labelsize=TICK_FONT_SIZE)
         ax_q.grid(True, linestyle='--', alpha=0.7)
-        if j == 0: # 最初の列のみ凡例を表示してすっきりさせる
+        if j == 0: 
             ax_q.legend(loc=LEGEND_LOC, fontsize=LEGEND_FONT_SIZE)
 
         # -----------------------------------
@@ -155,16 +199,17 @@ def plot_saddle_points(df, A, B, C):
         ax_qhat.plot(betas, qhat0, marker='o', markersize=MARKER_SIZE, linewidth=LINE_WIDTH, color='b', label='q_hat[0]')
         ax_qhat.plot(betas, qhat1, marker='s', markersize=MARKER_SIZE, linewidth=LINE_WIDTH, color='r', label='q_hat[1]')
         
-        # 縦線を引く
         ax_qhat.axvline(x=beta_max, color='k', linestyle='--', alpha=0.6)
         
-        ax_qhat.set_xlabel(r'$\beta$', fontsize=14)
-        ax_qhat.set_ylabel(r'$\hat{q}$', fontsize=14)
+        ax_qhat.set_xlabel(r'$\beta$', fontsize=AXIS_LABEL_FONT_SIZE)
+        ax_qhat.set_ylabel(r'$\hat{q}$', fontsize=AXIS_LABEL_FONT_SIZE)
+        ax_qhat.tick_params(axis='both', which='major', labelsize=TICK_FONT_SIZE)
         ax_qhat.grid(True, linestyle='--', alpha=0.7)
+        ax_qhat.set_xlim([BETA_START, BETA_END])
 
     plt.tight_layout()
-    # メインタイトルとサブプロットが被らないように調整
-    fig.subplots_adjust(top=0.9)
+    if SHOW_TITLE:
+        fig.subplots_adjust(top=0.9)
     
     out_name = f"sp_{A}.svg"
     plt.savefig(out_name, format="svg")
@@ -179,10 +224,7 @@ if __name__ == "__main__":
     
     if target_file:
         print(f"\n読み込み中: {target_file}")
-        # CSVファイルの読み込み
         df = pd.read_csv(target_file)
-        
-        # ファイル名からA, B, Cを取得
         A, B, C = parse_filename(target_file)
         
         print("\n=== 出力するグラフを選択してください ===")

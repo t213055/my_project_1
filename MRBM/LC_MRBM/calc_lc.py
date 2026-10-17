@@ -1,4 +1,5 @@
 import numpy as np
+import time
 from scipy.integrate import quad
 from numpy.polynomial.hermite import hermgauss
 
@@ -34,7 +35,7 @@ def SP(beta, q, q_hat, T_alpha, alpha, v_k, b, c, delta_term, tol_sp):
         q[1], _ = quad(integrand_q_h, -12, 12)
         q_hat = beta**2 * T_alpha @ q
         iteration += 1
-        
+
         if (np.all(np.abs(q - q_old) <= tol_sp) and np.all(np.abs(q_hat - q_hat_old) <= tol_sp)):
             return q, q_hat, A, iteration
 

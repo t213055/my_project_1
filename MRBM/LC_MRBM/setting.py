@@ -8,10 +8,13 @@ t = 5
 
 # 温度のスタート, ゴール
 beta_init = 0.0 + 1e-16
-beta_limit = 2.0
+beta_limit = 2.5
 
 # 収束判定
 tol_sp = 1e-10
 
+if t == 3 or t == 5:
+    tol_sp = 1e-8
+
 # 計算を行う層のサイズ比(alpha)のリスト
-alpha_list = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
+alpha_list = [0.5, 1.0, 1.5,2.0, 2.5, 3.0]

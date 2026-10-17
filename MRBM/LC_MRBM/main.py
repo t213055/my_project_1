@@ -7,6 +7,7 @@ from setting import eps, b, c, t, beta_init, beta_limit, tol_sp, alpha_list
 # ==========================================
 # メイン処理
 # ==========================================
+print("tol_sp:", tol_sp)
 delta_term = 1.0 if (t % 2 == 0) else 0.0
 v_k = visible_variable_array(t)
 
