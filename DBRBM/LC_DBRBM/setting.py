@@ -4,7 +4,7 @@
 eps = 0.001
 b = eps
 c = eps
-t = 3
+t = 4
 
 # 温度のスタート, ゴール
 beta_init = 0.0 + 1e-16
