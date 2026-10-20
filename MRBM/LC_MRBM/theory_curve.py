@@ -12,7 +12,8 @@ from adjustText import adjust_text
 SHOW_TITLE = False         # タイトルを表示するか (True: 表示, False: 非表示)
 
 # 表示する alpha の設定
-DISPLAY_ALPHAS = [0.5, 1.0, 2.0]
+DISPLAY_ALPHAS = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]  # 表示する alpha のリスト (ここで設定した alpha のみがグラフ化される)
+#DISPLAY_ALPHAS = [0.5, 1.0, 2.0]  # 表示する alpha のリスト (ここで設定した alpha のみがグラフ化される)
 
 # グラフの横軸の描画範囲設定 (対数スケール: 10^x)
 LOG_ALPHA_START = -1.0     # デフォルト: 10^-1 = 0.1
@@ -21,7 +22,7 @@ LOG_ALPHA_END = 1.0        # デフォルト: 10^1 = 10
 # フォントサイズの設定
 FONT_SIZE_TITLE = 20       # タイトルのフォントサイズ
 FONT_SIZE_AXIS = 20        # 軸ラベルのフォントサイズ
-FONT_SIZE_TICKS = 20       # 軸目盛のフォントサイズ
+FONT_SIZE_TICKS = 25       # 軸目盛のフォントサイズ
 FONT_SIZE_TEXT = 20        # グラフ中のテキスト（alphaの値）のフォントサイズ
 FONT_SIZE_LEGEND = 20      # 凡例のフォントサイズ
 
@@ -131,28 +132,28 @@ if __name__ == "__main__":
         plt.figure(figsize=(10, 8))
 
         # 理論カーブ
-        plt.plot(log_alphas, betas, linestyle='-', color='blue', linewidth=2.5, 
+        plt.plot(log_alphas, betas, linestyle='-', color='blue', linewidth=3.5, 
                  label=f'Transition Point', zorder=1)
 
         # 数値実験のプロット
         texts = []
         if numerical_log_alphas:
-            plt.scatter(numerical_log_alphas, numerical_betas, marker='*', s=300, color='red', 
+            plt.scatter(numerical_log_alphas, numerical_betas, marker='*', s=600, color='red', 
                         edgecolor='black', label=rf'$\beta_{{\text{{max}}}}$', zorder=2)
             
             # プロット点の近くに元のαの値をテキスト表示するための準備
             for la, b in zip(numerical_log_alphas, numerical_betas):
                 original_alpha = 10**la
-                texts.append(plt.text(la, b, rf'$\alpha={original_alpha:.1f}$', 
-                                      fontsize=FONT_SIZE_TEXT))
+                #texts.append(plt.text(la, b, rf'$\alpha={original_alpha:.1f}$', 
+                                      #fontsize=FONT_SIZE_TEXT))
 
         # adjustTextによるテキストの自動調整（重なり防止）
         if texts:
             adjust_text(texts, arrowprops=dict(arrowstyle="-", color='k', lw=1.0))
 
         # 軸ラベルとタイトル
-        plt.xlabel(r'$\log_{10}(\alpha)$', fontsize=FONT_SIZE_AXIS)
-        plt.ylabel(r'$\beta$', fontsize=FONT_SIZE_AXIS)
+        #plt.xlabel(r'$\log_{10}(\alpha)$', fontsize=FONT_SIZE_AXIS)
+        #plt.ylabel(r'$\beta$', fontsize=FONT_SIZE_AXIS)
 
         # 軸目盛のフォントサイズ
         plt.xticks(fontsize=FONT_SIZE_TICKS)
@@ -166,7 +167,7 @@ if __name__ == "__main__":
                       fontsize=FONT_SIZE_TITLE)
 
         plt.grid(True, linestyle='--', alpha=0.7)
-        plt.legend(loc='upper center', fontsize=FONT_SIZE_LEGEND)
+        #plt.legend(loc='upper center', fontsize=FONT_SIZE_LEGEND)
         plt.tight_layout()
 
         out_filename = f"transition_vs_correlation_t{T_FIXED}_log.png"
