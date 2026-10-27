@@ -233,6 +233,8 @@ class GBRBM:
         
         #隠れ変数がbinaryの場合の対数尤度関数のpositive側
         #pos = -(v_train**2 @ (0.5/self.get_var())) + v_train @ self.b + np.log(1 + np.exp(self.c.T + v_train @ self.W)).sum(axis=1)
+        
+        #隠れ変数がIsingの場合の対数尤度関数のpositive側
         pos = -(v_train**2 @ (0.5/self.get_var())) + v_train @ self.b + np.log(2 * np.cosh(self.c.T + v_train @ self.W)).sum(axis=1)
         LL_pos = pos.mean(axis=0)
 
@@ -255,7 +257,7 @@ class GBRBM:
         return LL
 
     # ==========================================
-    # データの再構成（生成）メソッド
+    # データの再構成（生成）メソッド CD法のクラスを用意しているので不要では？
     # ==========================================
     def reconstruct(self, v, k=1):
         """

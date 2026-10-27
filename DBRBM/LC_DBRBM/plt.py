@@ -13,11 +13,11 @@ from adjustText import adjust_text
 SHOW_TITLE = False
 
 # 表示する alpha のリスト (ここで設定した alpha のみがグラフ化される)
-DISPLAY_ALPHAS = [0.5, 1.0, 2.0]
+DISPLAY_ALPHAS = [0.5, 1.0, 2.0, 2.5]
 
 # 描画範囲の設定 (ここで設定した範囲のみをグラフ化)
 BETA_START = 1.56
-BETA_END = 1.7
+BETA_END = 2.0
 
 # フォントサイズの設定
 TITLE_FONT_SIZE = 16       # グラフタイトルのフォントサイズ
@@ -110,8 +110,8 @@ def plot_chi(df, A, B, C):
         plt.plot(max_beta, max_chi, marker='*', markersize=MARKER_SIZE+8, color=COLORS[i % len(COLORS)])
         
         # adjustText で後から調整するため、テキストオブジェクトをリストに保存
-        #texts.append(plt.text(max_beta, max_chi, rf'$\beta={max_beta:.2f}$', 
-        #                      color=COLORS[i % len(COLORS)], fontsize=BETA_MAX_FONT_SIZE, fontweight='bold'))
+        texts.append(plt.text(max_beta, max_chi, rf'$\beta={max_beta:.2f}$', 
+                              color=COLORS[i % len(COLORS)], fontsize=BETA_MAX_FONT_SIZE, fontweight='bold'))
 
     # テキストの重なりを自動調整し、必要に応じて引き出し線を引く
     if texts:
