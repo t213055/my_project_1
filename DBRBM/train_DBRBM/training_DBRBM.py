@@ -12,17 +12,18 @@ import itertools #対数尤度関数（分配関数）計算時、隠れ変数�
 #実験設定の記述
 CONFIG = {
     # モデルの設定
-    "num_visible": 8, 
+    "num_visible": 10, 
     "alpha_list": [0.5, 1.0, 2.0],
     # 学習設定
     "lerning_rate": 0.01,
-    "num_epochs": 1000,
+    "num_epochs": 500,
     "cd_k": 1,
-    "batch_size": 32,
+    "batch_size":16,
+    "TRIALS": 200,
     # 教師モデルの設定
-    "num_samples": 1000,
+    "num_samples": 500,
     "burn_in_steps": 1000,
-    "teacher_beta": 3.0,
+    "teacher_beta": 4.0,
     "teacher_bias_scale": 0.5 
 }
 
@@ -34,7 +35,7 @@ CONFIG["beta_max"] = [
     1.66967 if alpha == 0.5 else
     1.59095 if alpha == 1.0 else
     1.60357 if alpha == 2.0 else
-    1.62606
+    None
     for alpha in CONFIG["alpha_list"]
 ]
 
@@ -52,9 +53,10 @@ def generate_train_data():
         num_visible = n_v,
         num_hidden=n_h,
         learning_rate=0.0, # 学習しないため0
-        beta_max=teacher_beta
+        beta_max=teacher_beta,
+        teacher=True
     )
-
+    # print("teacher_model_size: n_v", n_v," n_h", n_h)
     teacher.visible_bias = np.random.normal(0, teacher_bias_scale, n_v)
     # print("teacher.visible_bias", teacher.visible_bias)
     teacher.hidden_bias = np.random.normal(0, teacher_bias_scale, n_h)
@@ -62,20 +64,17 @@ def generate_train_data():
     # print("teacher.weights", teacher.weights)
 
     v = np.random.choice([-1, 0, 1], size=(n_samples, n_v))
-    v_copy = v.copy()
-    # print("v\n", v)
-    # print("v.shape", v.shape)
 
     for i in range(burn_in_steps):
         _, h = teacher.sample_h(v)
         _, v = teacher.sample_v(h)
-    print("==== data generated")
+    # print("==== data generated\n")
 
     return v
 
 
 class DBRBM:
-    def __init__(self, num_visible, num_hidden, learning_rate, beta_max):
+    def __init__(self, num_visible, num_hidden, learning_rate, beta_max, teacher=False):
         self.num_visible = num_visible
         self.num_hidden = num_hidden
         self.learning_rate = learning_rate
@@ -85,51 +84,35 @@ class DBRBM:
         self.weights = np.random.normal(0, beta_max / np.sqrt(num_visible + num_hidden), (num_visible, num_hidden)) # std = beta_max / sqrt(num_visible + num_hidden)
         self.visible_bias = np.zeros(num_visible)
         self.hidden_bias = np.zeros(num_hidden)
+        if teacher == False:
+            if (num_hidden / num_visible) <= (np.log(3)/np.log(2)):
+                # αが1.58より小さい→可視層の計算量が大きい→可視層を周辺化したln_Zの計算
+                # →隠れ層の総組み合わせ行列を使う
+                # 隠れ変数の全組み合わせ行列の生成
+                num_states = 2 ** self.num_hidden
+                n = np.arange(num_states, dtype=np.int32)[:, None]
+                # ビットシフト用の配列
+                shifts = np.arange(self.num_hidden - 1, -1, -1, dtype=np.int32)
+                # ビット演算で一気に 0/1 の行列を作成
+                self._all = (2 * ((n >> shifts) & 1) - 1).astype(np.float32)
 
-        # 隠れ変数の全組み合わせ行列の生成
-        num_states = 2 ** self.num_hidden
-        n = np.arange(num_states, dtype=np.int32)[:, None]
-        # ビットシフト用の配列
-        shifts = np.arange(self.num_hidden - 1, -1, -1, dtype=np.int32)
-        # ビット演算で一気に 0/1 の行列を作成
-        self._H_all = (2 * ((n >> shifts) & 1) - 1).astype(np.float32)
-
-        # 可視変数の全組み合わせ行列の生成
-        num_states = 3 ** self.num_visible
-        # 1. 0 から 3^V - 1 までの整数 (サイズ: [3^V, 1])
-        n = np.arange(num_states, dtype=np.int32)[:, None]
-        # 2. 3を底とする「桁の重み」（3^0, 3^1, ...）の指数を作成
-        powers = np.arange(self.num_visible - 1, -1, -1, dtype=np.int32)
-        # 3. 3進数の各桁を抽出する: (n // 3^powers) % 3
-        # これにより、要素が {0, 1, 2} の行列が一気に生成されます
-        ternary_matrix = (n // (3 ** powers)) % 3
-        # 4. {0, 1, 2} を {-1, 0, 1} に変換する (1を引くだけ！)
-        self._V_all = (ternary_matrix - 1).astype(np.float32)
+            else:
+                # αが1.58より大きい→隠れ層の計算量が大きい→隠れ層を周辺化したln_Zの計算
+                # →可視層の総組み合わせ行列を使う
+                #可視変数の全組み合わせ行列の生成
+                num_states = 3 ** self.num_visible
+                # 1. 0 から 3^V - 1 までの整数 (サイズ: [3^V, 1])
+                n = np.arange(num_states, dtype=np.int32)[:, None]
+                # 2. 3を底とする「桁の重み」（3^0, 3^1, ...）の指数を作成
+                powers = np.arange(self.num_visible - 1, -1, -1, dtype=np.int32)
+                # 3. 3進数の各桁を抽出する: (n // 3^powers) % 3
+                # これにより、要素が {0, 1, 2} の行列が一気に生成されます
+                ternary_matrix = (n // (3 ** powers)) % 3
+                # 4. {0, 1, 2} を {-1, 0, 1} に変換する (1を引くだけ！)
+                self._all = (ternary_matrix - 1).astype(np.float32)
+            # print("==== student model initialized :", "beta", beta)
 
     #活性化関数
-    """
-    def sample_h(self, v):
-        
-        activation = np.dot(v, self.weights) + self.hidden_bias #expへの入力
-        logit_1 = activation
-        logit_m1 = -activation
-        max_logit = np.maximum(logit_1, logit_m1)
-
-        exp_1 = np.exp(logit_1 - max_logit)
-        exp_m1 = np.exp(logit_m1 - max_logit)
-
-        prob_1 = exp_1 / (exp_1 + exp_m1) #隠れ変数が1をとる確率
-
-        #確率に応じて隠れ変数をサンプリング（CD法では確率ではなくサンプリングした値を用いる）
-        random_vals = np.random.rand(*prob_1.shape)
-        h_sample = np.where(random_vals < prob_1, 1, -1)
-
-        #期待値計算
-        h_expected = np.tanh(activation)
-        
-        return h_expected, h_sample
-    """
-
     def sample_h(self, v):
         activation = np.dot(v, self.weights) + self.hidden_bias
 
@@ -246,14 +229,42 @@ class DBRBM:
         w = self.weights
         b = self.visible_bias
         c = self.hidden_bias
-        _V_all = self._V_all
-        # print("_V_all.shape", _V_all.shape)
-        _H_all = self._H_all
-        # print("_H_all.shape", _H_all.shape)
-
+        
         if alpha <= np.log(3)/np.log(2):
-            if epoch == 0:
-                print("==== use ln_Z_marge_h")
+            # αが1.58より小さい→可視変数の計算量が大きい→可視層を周辺化したln_Zを計算
+            # 隠れ変数の総組み合わせ行列を使用
+
+            # if epoch == 0:
+                # print("==== ln_Z_marge_v")
+            _H_all = self._all
+            # print("_H_all.shape", _H_all.shape)
+            phi = _H_all @ w.T + b
+            abs_phi = np.abs(phi) #iについての総積（=exp上での総和）はとられているためサイズが(2*num_hidden, "num_visible")
+            #print("phi.shape", phi.shape, "\nphi\n", phi)
+            term_A = abs_phi + np.log(1 + np.exp(-abs_phi) + np.exp(-2 * abs_phi))
+            term_A = np.sum(term_A, axis=1)
+            #print("term_A.shape", term_A.shape, "\nterm_A\n", term_A)
+
+            term_B = _H_all @ c.T
+            #print("term_B.shape", term_B.shape, "\nterm_B\n", term_B)
+
+            psi = term_B + term_A
+            #print("psi.shape", psi.shape,"\npsi\n", psi)
+            psi_max = np.maximum.reduce(psi)
+            #print("psi_max", psi_max)
+
+            term_C = np.exp(psi - psi_max)
+            ln_Z = psi_max + np.log(np.sum(term_C))
+
+
+        else:
+            # αが1.58より大きい→隠れ変数の計算量が大きい→隠れ層を周辺化したln_Zを計算
+            # 可視変数の総組み合わせ行列を使用
+
+            # if epoch == 0:
+                # print("==== use ln_Z_marge_h")
+            _V_all = self._all
+            # print("_V_all.shape", _V_all.shape)
             phi = _V_all @ w + c
             # print("phi.shape", phi.shape)
             abs_phi = np.abs(phi)
@@ -275,94 +286,88 @@ class DBRBM:
             
             ln_Z = psi_max + np.log(np.sum(term_C))
 
-        else:
-            if epoch == 0:
-                print("==== ln_Z_marge_v")
 
-            phi = _H_all @ w.T + b
-            abs_phi = np.abs(phi) #iについての総積（=exp上での総和）はとられているためサイズが(2*num_hidden, "num_visible")
-            #print("phi.shape", phi.shape, "\nphi\n", phi)
-            term_A = abs_phi + np.log(1 + np.exp(-abs_phi) + np.exp(-2 * abs_phi))
-            term_A = np.sum(term_A, axis=1)
-            #print("term_A.shape", term_A.shape, "\nterm_A\n", term_A)
 
-            term_B = _H_all @ c.T
-            #print("term_B.shape", term_B.shape, "\nterm_B\n", term_B)
-
-            psi = term_B + term_A
-            #print("psi.shape", psi.shape,"\npsi\n", psi)
-            psi_max = np.maximum.reduce(psi)
-            #print("psi_max", psi_max)
-
-            term_C = np.exp(psi - psi_max)
-            ln_Z = psi_max + np.log(np.sum(term_C))
         return ln_Z
         
 #main文
 for alpha, beta in zip(CONFIG["alpha_list"], CONFIG["beta_max"]):
-    print(f"\n\n========== alpha: {alpha}, beta_max: {beta} ==========")
+    # print(f"\n========== alpha: {alpha}, beta_max: {beta} ==========")
     n_v = CONFIG["num_visible"]
     n_h = CONFIG["num_hidden"](alpha)
     train_data = generate_train_data()
     n_samples = CONFIG["num_samples"]
 
-    model = DBRBM(
-        num_visible=CONFIG["num_visible"],
-        num_hidden=CONFIG["num_hidden"](alpha),
-        learning_rate=CONFIG["lerning_rate"],
-        beta_max=beta
-    )
-    
+    trials = CONFIG["TRIALS"]
     epochs = CONFIG["num_epochs"]
-    prog = epochs/10
-    batch_size = CONFIG["batch_size"] #: データセットのバッチサイズ
-    #n_samples : データセットのサンプル数
 
-    #print("train_data\n", train_data)
-    #print("log_likelihood", model.log_likelihood(train_data))
-    ll_list = []
-    epoch_list = []
-    for epoch in range(epochs):
-        #print(f"===== epoch : {epoch} =====")
-        
-        #各epochでデータをシャッフル
-        indices = np.random.permutation(n_samples)
-        # print("indices", indices)
-        shuffled_data = train_data[indices]
-        # print("train_data\n", shuffled_data)
-
-        for i in range(0, n_samples, batch_size):
-            batch_data = shuffled_data[i : i + batch_size]
-            model.update(batch_data, cd_k=1)
-        
-        
-        if(epoch % 1 == 0):
-            ll = model.log_likelihood(train_data)
-
-            epoch_list.append(epoch)
-            ll_list.append(ll)
-        
-        if (epoch+1) % prog == 0:
-            print("■", end="", flush=True)
-
-    # データを用意
-    x = epoch_list
-    y = ll_list
-
-    # 描画オブジェクト（fig）とサブプロット（ax）を生成する
+    # α毎にキャンバスを更新
     fig, ax = plt.subplots()
+
+    # 各モデルに対する3通りの初期化
+    for beta in [beta/4, beta, 4*beta]:
+
+        ll_array = np.zeros((trials, epochs))
+        # print("ll_array.shape", ll_array.shape)
+        epoch_list = []
+
+        for trial in range(CONFIG["TRIALS"]):
+            model = DBRBM(
+                num_visible=CONFIG["num_visible"],
+                num_hidden=CONFIG["num_hidden"](alpha),
+                learning_rate=CONFIG["lerning_rate"],
+                beta_max=beta
+                )
+            
+            prog = epochs/10
+            batch_size = CONFIG["batch_size"] #: データセットのバッチサイズ
+            #n_samples : データセットのサンプル数
+
+            for epoch in range(epochs):
+                #print(f"===== epoch : {epoch} =====")
+                
+                #各epochでデータをシャッフル
+                indices = np.random.permutation(n_samples)
+                # print("indices", indices)
+                shuffled_data = train_data[indices]
+                # print("train_data\n", shuffled_data)
+
+                for i in range(0, n_samples, batch_size):
+                    batch_data = shuffled_data[i : i + batch_size]
+                    model.update(batch_data, cd_k=1)
+                
+                
+                if(epoch % 1 == 0):
+                    ll = model.log_likelihood(train_data)
+                    ll_array[trial, epoch] = ll
+                
+                # if (epoch+1) % prog == 0:
+                    # print("■", end="", flush=True)
+        ll_mean = np.mean(ll_array, axis=0)
+        # print()
+
+        # データを用意
+        x = np.arange(epochs)
+        y = ll_mean
+
+        # 描画オブジェクト（fig）とサブプロット（ax）を生成する
+        ax.plot(x,y, label=f"beta ={beta:.5f}")
 
     # 折れ線グラフを表示
     ax.plot(x, y)
     # グラフにタイトルをつける
-    ax.set_title('テストタイトル', fontname="Meiryo")
+    ax.set_title(f'alpha = {alpha}', fontname="Meiryo")
     # x軸のラベルを設定
     plt.xlabel("x軸ラベル")
     # y軸のラベルを設定
     plt.ylabel("y軸ラベル")
-
+    # 凡例を表示
+    ax.legend()
+    # グラフをカレントディレクトリに保存
+    # fig.savefig(f"result{alpha}.svg")
     # グラフを表示
-    plt.show()
+    plt.show(block=False)
 
     #結果出力
-        #epochごとの対数尤度をcsvファイルに出力
+    #epochごとの対数尤度をcsvファイルに出力
+plt.show()
