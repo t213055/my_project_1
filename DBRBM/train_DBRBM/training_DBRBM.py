@@ -8,23 +8,57 @@ import japanize_matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
 import itertools #対数尤度関数（分配関数）計算時、隠れ変数の和をとる場合に使用
+import csv
+# from sklearn.datasets import load_diabetes
+from sklearn.datasets import load_wine
 
-#実験設定の記述
+#実験設定の記述（人工データ）
+# CONFIG = {
+#     "num_visible": 10, 
+#     "alpha_list": [0.5, 1.0, 2.0],
+#     "lerning_rate": 0.01,   # ← 少し大きめにして学習速度の差を開かせる
+#     "num_epochs": 100,      # ← 収束までの過程が見える程度の長さに
+#     "cd_k": 1,
+#     "batch_size": 32,       # ← 標準的なバッチサイズで勾配を安定させる
+#     "TRIALS": 200,           # ← 乱数によるブレを消すため、最低10回は平均をとる
+#     # 教師モデルの設定
+#     "num_samples": 1000,    # ← データ数を増やして真の分布を安定させる
+#     "burn_in_steps": 1000,
+#     "teacher_beta": 3.0,
+#     "teacher_bias_scale": 0.5,
+#     "output_path": "results.csv"
+# }
+
+# train_data = load_diabetes()  # データセットをロード
+train_data = load_wine()
+X = train_data.data
+Y = train_data.target
+print("train_data.data.shape", X.shape)
+print("train_data.target.shape", Y.shape)
+
+X = pd.DataFrame(X)  # データをDataFrameに変換
+Y = pd.DataFrame(Y)  # ターゲットをDataFrameに変換
+df = pd.concat([X,Y], axis=1)
+print("train_data.shape", df.shape)
+print(df.head()) #先頭から5行を表示
+
+print("columns", len(df.columns))
+print("rows", len(df))
+# 実験設定（実データ）
 CONFIG = {
-    # モデルの設定
-    "num_visible": 10, 
+    "num_visible": len(df.columns), 
     "alpha_list": [0.5, 1.0, 2.0],
-    # 学習設定
-    "lerning_rate": 0.01,
-    "num_epochs": 500,
+    "lerning_rate": 0.01,   # ← 少し大きめにして学習速度の差を開かせる
+    "num_epochs": 200,      # ← 収束までの過程が見える程度の長さに
     "cd_k": 1,
-    "batch_size":16,
-    "TRIALS": 200,
+    "batch_size": 16,       # ← 標準的なバッチサイズで勾配を安定させる
+    "TRIALS": 100,           # ← 乱数によるブレを消すため、最低10回は平均をとる
     # 教師モデルの設定
-    "num_samples": 500,
+    "num_samples": len(df),    # ← データ数を増やして真の分布を安定させる
     "burn_in_steps": 1000,
-    "teacher_beta": 4.0,
-    "teacher_bias_scale": 0.5 
+    # "teacher_beta": 3.0,
+    # "teacher_bias_scale": 0.5,
+    "output_path": "results_wine_1.csv"
 }
 
 #可視変数はalphaの値によって変わるので、alphaの関数として記述している？
@@ -33,6 +67,7 @@ CONFIG["num_hidden"] = lambda alpha: int(CONFIG["num_visible"] * alpha)  # 隠�
 
 CONFIG["beta_max"] = [
     1.66967 if alpha == 0.5 else
+    # 1.68779 if alpha == 0.5 else #diabetesデータセット使用時は可視変数が奇数になるので、転移点が少しずれる
     1.59095 if alpha == 1.0 else
     1.60357 if alpha == 2.0 else
     None
@@ -68,10 +103,32 @@ def generate_train_data():
     for i in range(burn_in_steps):
         _, h = teacher.sample_h(v)
         _, v = teacher.sample_v(h)
-    # print("==== data generated\n")
+    print("==== data generated\n")
 
     return v
 
+def discretize_to_ternary(series):
+    unique_vals = series.unique()
+    
+    # パターン1: 値が2種類しかない場合（例：性別）
+    # → 最小値を -1、最大値を 1 に割り当てる（0は使わない）
+    if len(unique_vals) <= 2:
+        return np.where(series == series.min(), -1, 1)
+    
+    # パターン2: それ以外の連続値
+    # → 下から33.3%のラインと、66.7%のラインを計算して3等分する
+    p33 = np.percentile(series, 33.33)
+    p67 = np.percentile(series, 66.67)
+    
+    conditions = [
+        series < p33,                         # 下位33%
+        (series >= p33) & (series <= p67),    # 中位33%
+        series > p67                          # 上位33%
+    ]
+    choices = [-1, 0, 1]
+    
+    # 条件に当てはめて変換
+    return np.select(conditions, choices, default=0)
 
 class DBRBM:
     def __init__(self, num_visible, num_hidden, learning_rate, beta_max, teacher=False):
@@ -291,27 +348,45 @@ class DBRBM:
         return ln_Z
         
 #main文
+path = CONFIG["output_path"]
+trials = CONFIG["TRIALS"]
+epochs = CONFIG["num_epochs"]
+
+results_dict = {"epoch": np.arange(epochs)}
+
+# データを3値化（-1, 0, 1）する
+df = df.apply(discretize_to_ternary)
+df = df.values  # DataFrameをNumPy配列に変換
+print(df[:, 1])
+print(df)
+
+
 for alpha, beta in zip(CONFIG["alpha_list"], CONFIG["beta_max"]):
-    # print(f"\n========== alpha: {alpha}, beta_max: {beta} ==========")
+    print(f"\n========== alpha: {alpha}, beta_max: {beta} ==========")
+    
     n_v = CONFIG["num_visible"]
     n_h = CONFIG["num_hidden"](alpha)
-    train_data = generate_train_data()
     n_samples = CONFIG["num_samples"]
-
-    trials = CONFIG["TRIALS"]
-    epochs = CONFIG["num_epochs"]
+    # print(f"{n_h}/{n_v}={alpha}")
 
     # α毎にキャンバスを更新
-    fig, ax = plt.subplots()
+    # fig, ax = plt.subplots()
+
+    beta_conditions = [
+        (f"{alpha}_/4", beta/4),
+        (f"{alpha}_1", beta),
+        (f"{alpha}_4", 4*beta)
+    ]  # βの条件をリストで定義
 
     # 各モデルに対する3通りの初期化
-    for beta in [beta/4, beta, 4*beta]:
+    for label, beta in beta_conditions:
 
         ll_array = np.zeros((trials, epochs))
         # print("ll_array.shape", ll_array.shape)
-        epoch_list = []
 
         for trial in range(CONFIG["TRIALS"]):
+            # train_data = generate_train_data()
+            train_data = df
             model = DBRBM(
                 num_visible=CONFIG["num_visible"],
                 num_hidden=CONFIG["num_hidden"](alpha),
@@ -341,33 +416,50 @@ for alpha, beta in zip(CONFIG["alpha_list"], CONFIG["beta_max"]):
                     ll = model.log_likelihood(train_data)
                     ll_array[trial, epoch] = ll
                 
-                # if (epoch+1) % prog == 0:
-                    # print("■", end="", flush=True)
+                if (epoch+1) % prog == 0:
+                    print("■", end="", flush=True)
+            print()
         ll_mean = np.mean(ll_array, axis=0)
-        # print()
-
+        print()
         # データを用意
         x = np.arange(epochs)
         y = ll_mean
+        results_dict[label] = ll_mean
+# 単純にcsvファイルに出力
+df = pd.DataFrame(results_dict)
+df.to_csv(path, index=False, encoding='utf-8')
 
-        # 描画オブジェクト（fig）とサブプロット（ax）を生成する
-        ax.plot(x,y, label=f"beta ={beta:.5f}")
+# 実験の設定をコメントとして書き込む
+comment = f"# CONFIG: {CONFIG}"
+print(comment)
+with open(path, "r", encoding="utf-8") as f:
+    content = f.read()
 
-    # 折れ線グラフを表示
-    ax.plot(x, y)
-    # グラフにタイトルをつける
-    ax.set_title(f'alpha = {alpha}', fontname="Meiryo")
-    # x軸のラベルを設定
-    plt.xlabel("x軸ラベル")
-    # y軸のラベルを設定
-    plt.ylabel("y軸ラベル")
-    # 凡例を表示
-    ax.legend()
-    # グラフをカレントディレクトリに保存
-    # fig.savefig(f"result{alpha}.svg")
-    # グラフを表示
-    plt.show(block=False)
+with open(path, 'w', newline='', encoding='utf-8') as f:
+    f.write(comment + "\n" + content)
 
-    #結果出力
-    #epochごとの対数尤度をcsvファイルに出力
-plt.show()
+
+
+
+
+#         # 描画オブジェクト（fig）とサブプロット（ax）を生成する
+#         ax.plot(x,y, label=f"beta ={beta:.5f}")
+
+#         # 折れ線グラフを表示
+#         ax.plot(x, y)
+#         # グラフにタイトルをつける
+#         ax.set_title(f'alpha = {alpha}', fontname="Meiryo")
+#         # x軸のラベルを設定
+#         plt.xlabel("x軸ラベル")
+#         # y軸のラベルを設定
+#         plt.ylabel("y軸ラベル")
+#         # 凡例を表示
+#         ax.legend()
+#         # グラフをカレントディレクトリに保存
+#         # fig.savefig(f"result{alpha}.svg")
+#         # グラフを表示
+#         plt.show(block=False)
+
+#         #結果出力
+#         #epochごとの対数尤度をcsvファイルに出力
+# plt.show()
