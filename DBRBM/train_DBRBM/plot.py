@@ -2,13 +2,17 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # 1行目のCONFIG設定行をスキップして、2行目をヘッダーとしてCSVを読み込む
-df = pd.read_csv('results_wine_1.csv', skiprows=1)
+df = pd.read_csv('results_toy_1.csv', skiprows=1)
 
 # x軸のデータ（1列目: 'epoch'）を取得
 x = df['epoch']
 
 # グラフを描画するための設定 (3つのalphaについてループで処理)
 alpha_values = [0.5, 1.0, 2.0]
+
+# グラフの描画設定
+linewidth = 5
+labelsize = 20
 
 for i, alpha in enumerate(alpha_values):
     # 各alphaに対応する列のインデックスを計算
@@ -26,13 +30,14 @@ for i, alpha in enumerate(alpha_values):
     
     # 対象の3列分、グラフに線を重ねて描画
     for col in y_cols:
-        ax.plot(x, df[col], label=col)
+        ax.plot(x, df[col], label=col, linewidth=linewidth)
         
     # グラフの体裁を整える
     ax.set_title(f'alpha={alpha}', fontsize=14, fontname="Meiryo")
     # ax.set_xlabel('Epoch', fontsize=12)
     # ax.set_ylabel('Log-Likelihood', fontsize=12)
     ax.legend(title='Beta condition')
+    ax.tick_params(axis='both', which='major', labelsize=labelsize)
     # ax.grid(True, linestyle='--', alpha=0.7)
     
     # グラフを保存して表示

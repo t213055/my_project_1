@@ -1,0 +1,12 @@
+# CONFIG: {'num_visible': 10, 'alpha_list': [0.5], 'lerning_rate': 0.01, 'num_epochs': 10, 'cd_k': 1, 'batch_size': 32, 'TRIALS': 1, 'num_samples': 100, 'burn_in_steps': 1000, 'teacher_beta': 3.0, 'teacher_bias_scale': 0.5, 'output_path': 'results.csv', 'update_method': 'sgd', 'num_hidden': <function <lambda> at 0x000001EDE29ADA80>, 'beta_max': [1.66967]}
+epoch,0.5_/4
+0,-10.569419708753628
+1,-10.297865929369568
+2,-9.989088193433947
+3,-9.665713973506215
+4,-9.403984520004075
+5,-9.11090736752421
+6,-8.79347738947356
+7,-8.614263496439172
+8,-8.330410732214833
+9,-8.068231787318997
