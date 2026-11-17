@@ -9,71 +9,71 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import itertools #対数尤度関数（分配関数）計算時、隠れ変数の和をとる場合に使用
 import csv
-# from sklearn.datasets import load_diabetes
+from sklearn.datasets import load_diabetes
 from sklearn.datasets import load_wine
 
 # 実験設定の記述（人工データ）
-CONFIG = {
-    "num_visible": 10, 
-    "alpha_list": [0.5],#, 1.0, 2.0
-    "lerning_rate": 0.01,   # ← 少し大きめにして学習速度の差を開かせる
-    "num_epochs": 10,      # ← 収束までの過程が見える程度の長さに
-    "cd_k": 1,
-    "batch_size": 32,       # ← 標準的なバッチサイズで勾配を安定させる
-    "TRIALS": 1,           # ← 乱数によるブレを消すため、最低10回は平均をとる
-    # 教師モデルの設定
-    "num_samples": 100,    # ← データ数を増やして真の分布を安定させる
-    "burn_in_steps": 1000,
-    "teacher_beta": 3.0,
-    "teacher_bias_scale": 0.5,
-    "output_path": "results.csv", 
-    "update_method": "sgd" #"exact" or "adam" or "sgd"
-}
-
-if CONFIG["update_method"] == "exact":
-    CONFIG["batch_size"] = CONFIG["num_samples"]  # exact法では、全データを使うためバッチサイズはデータ数と同じにする
-
-
-# train_data = load_diabetes()  # データセットをロード
-# train_data = load_wine()
-# X = train_data.data
-# Y = train_data.target
-# print("train_data.data.shape", X.shape)
-# print("train_data.target.shape", Y.shape)
-
-# X = pd.DataFrame(X)  # データをDataFrameに変換
-# Y = pd.DataFrame(Y)  # ターゲットをDataFrameに変換
-# df = pd.concat([X,Y], axis=1)
-# print("train_data.shape", df.shape)
-# print(df.head()) #先頭から5行を表示
-
-# print("columns", len(df.columns))
-# print("rows", len(df))
-# # 実験設定（実データ）
 # CONFIG = {
-#     "num_visible": len(df.columns), 
+#     "num_visible": 10, 
 #     "alpha_list": [0.5, 1.0, 2.0],
 #     "lerning_rate": 0.01,   # ← 少し大きめにして学習速度の差を開かせる
-#     "num_epochs":150,      # ← 収束までの過程が見える程度の長さに
+#     "num_epochs": 100,      # ← 収束までの過程が見える程度の長さに
 #     "cd_k": 1,
-#     "batch_size": 16,       # ← 標準的なバッチサイズで勾配を安定させる
+#     "batch_size": 32,       # ← 標準的なバッチサイズで勾配を安定させる
 #     "TRIALS": 50,           # ← 乱数によるブレを消すため、最低10回は平均をとる
 #     # 教師モデルの設定
-#     "num_samples": len(df),    # ← データ数を増やして真の分布を安定させる
+#     "num_samples": 1000,    # ← データ数を増やして真の分布を安定させる
 #     "burn_in_steps": 1000,
-#     # "teacher_beta": 3.0,
-#     # "teacher_bias_scale": 0.5,
-#     "output_path": "results_toy_2.csv",
-#     "update_method": "adam"  # 勾配更新方法を指定（"sgd" または "adam"）
+#     "teacher_beta": 3.0,
+#     "teacher_bias_scale": 0.5,
+#     "output_path": "results_toy_2.csv", 
+#     "update_method": "sgd" #"exact" or "adam" or "sgd"
 # }
+
+# if CONFIG["update_method"] == "exact":
+#     CONFIG["batch_size"] = CONFIG["num_samples"]  # exact法では、全データを使うためバッチサイズはデータ数と同じにする
+
+
+train_data = load_diabetes()  # データセットをロード
+# train_data = load_wine()
+X = train_data.data
+Y = train_data.target
+print("train_data.data.shape", X.shape)
+print("train_data.target.shape", Y.shape)
+
+X = pd.DataFrame(X)  # データをDataFrameに変換
+Y = pd.DataFrame(Y)  # ターゲットをDataFrameに変換
+df = pd.concat([X,Y], axis=1)
+print("train_data.shape", df.shape)
+print(df.head()) #先頭から5行を表示
+
+print("columns", len(df.columns))
+print("rows", len(df))
+# 実験設定（実データ）
+CONFIG = {
+    "num_visible": len(df.columns), 
+    "alpha_list": [0.5, 1.0, 2.0],
+    "lerning_rate": 0.01,   # ← 少し大きめにして学習速度の差を開かせる
+    "num_epochs":100,      # ← 収束までの過程が見える程度の長さに
+    "cd_k": 1,
+    "batch_size": 16,       # ← 標準的なバッチサイズで勾配を安定させる
+    "TRIALS": 50,         # ← 乱数によるブレを消すため、最低10回は平均をとる
+    # 教師モデルの設定
+    "num_samples": len(df),    # ← データ数を増やして真の分布を安定させる
+    "burn_in_steps": 1000,
+    # "teacher_beta": 3.0,
+    # "teacher_bias_scale": 0.5,
+    "output_path": "results_diabetes_2.csv",
+    "update_method": "sgd"  # 勾配更新方法を指定（"sgd" または "adam"）
+}
 
 #可視変数はalphaの値によって変わるので、alphaの関数として記述している？
 #main文で、num_hidden = CONFIG["num_hidden"](alpha) のように使用する。
 CONFIG["num_hidden"] = lambda alpha: int(CONFIG["num_visible"] * alpha)  # 隠れ変数の数は可視変数の数＊alpha
 
 CONFIG["beta_max"] = [
-    1.66967 if alpha == 0.5 else
-    # 1.68779 if alpha == 0.5 else #diabetesデータセット使用時は可視変数が奇数になるので、転移点が少しずれる
+    # 1.66967 if alpha == 0.5 else
+    1.68779 if alpha == 0.5 else #diabetesデータセット使用時は可視変数が奇数になるので、転移点が少しずれる
     1.59095 if alpha == 1.0 else
     1.60357 if alpha == 2.0 else
     None
@@ -89,7 +89,7 @@ def generate_train_data():
     teacher_beta = CONFIG["teacher_beta"]
     teacher_bias_scale = CONFIG["teacher_bias_scale"]
     burn_in_steps = CONFIG["burn_in_steps"]
-
+    
     teacher = DBRBM(
         num_visible = n_v,
         num_hidden=n_h,
@@ -109,7 +109,7 @@ def generate_train_data():
     for i in range(burn_in_steps):
         _, h = teacher.sample_h(v)
         _, v = teacher.sample_v(h)
-    print("==== data generated\n")
+    print("\n==== data generated")
 
     return v
 
@@ -147,23 +147,6 @@ class DBRBM:
         self.weights = np.random.normal(0, beta_max / np.sqrt(num_visible + num_hidden), (num_visible, num_hidden)) # std = beta_max / sqrt(num_visible + num_hidden)
         self.visible_bias = np.zeros(num_visible)
         self.hidden_bias = np.zeros(num_hidden)
-
-        # ====================================================
-        # 【追加】Adamオプティマイザ用のパラメータ初期化
-        # ====================================================
-        self.beta1 = 0.9      # 1次モーメント（平均）の減衰率
-        self.beta2 = 0.999    # 2次モーメント（分散）の減衰率
-        self.epsilon = 1e-8   # ゼロ割り算防止
-        self.t = 0            # 更新ステップのカウンター
-        
-        # 重みとバイアスの勾配履歴（m:1次, v:2次）をゼロ配列で準備
-        self.m_w = np.zeros_like(self.weights)
-        self.v_w = np.zeros_like(self.weights)
-        self.m_vb = np.zeros_like(self.visible_bias)
-        self.v_vb = np.zeros_like(self.visible_bias)
-        self.m_hb = np.zeros_like(self.hidden_bias)
-        self.v_hb = np.zeros_like(self.hidden_bias)
-        # ====================================================
 
         if teacher == False:
             if (num_hidden / num_visible) <= (np.log(3)/np.log(2)):
@@ -258,28 +241,6 @@ class DBRBM:
         # ①を用いるのは、サンプリングによるノイズを避けるため
         return v0, h0_expected, vk, hk
 
-    # def update_exact(self, batch_data):
-    #     batch_size = batch_data.shape[0] #与えられたデータからbatch_sizeを取得するか、CONFIGから取得するか。
-    #     # print("batch_size", batch_size)
-    #     v0, h0_expected, _, _ = self.cd(batch_data, k=cd_k)
-    #     # print(
-    #     #     "v0.shape",v0.shape ,
-    #     #     "\nh0_expected.shape", h0_expected.shape,
-    #     #     )
-        
-    #     #勾配計算
-    #     db = np.mean(v0, axis=0) - #可視変数の期待値
-    #     # print("db.shape", db.shape)
-    #     dc = np.mean(h0_expected, axis=0) - #隠れ変数の期待値
-    #     # print("dc.shape", dc.shape)
-    #     dw = np.dot(v0.T, h0_expected)/batch_size - #可視変数と隠れ変数の期待値
-    #     # print("dw.shape", dw.shape)
-        
-    #     #パラメータ更新
-    #     self.visible_bias += self.learning_rate * db
-    #     self.hidden_bias += self.learning_rate * dc
-    #     self.weights += self.learning_rate * dw
-
     #勾配更新（勾配上昇法 or adamを選択可能）
     def update_sgd(self, batch_data, cd_k=1):
         batch_size = batch_data.shape[0] #与えられたデータからbatch_sizeを取得するか、CONFIGから取得するか。
@@ -304,45 +265,6 @@ class DBRBM:
         self.visible_bias += self.learning_rate * db
         self.hidden_bias += self.learning_rate * dc
         self.weights += self.learning_rate * dw
-
-    # ====================================================
-    # 【追加】Adamによる勾配更新メソッド
-    # ====================================================
-    def update_adam(self, batch_data, cd_k=1):
-        batch_size = batch_data.shape[0]
-        
-        # CD法によるサンプリング（通常のupdateと同じ）
-        v0, h0_expected, vk_sample, hk_sample = self.cd(batch_data, k=cd_k)
-        
-        # 勾配の計算（通常のupdateと同じ）
-        db = np.mean(v0, axis=0) - np.mean(vk_sample, axis=0)
-        dc = np.mean(h0_expected, axis=0) - np.mean(hk_sample, axis=0)
-        dw = np.dot(v0.T, h0_expected) / batch_size - np.dot(vk_sample.T, hk_sample) / batch_size
-        
-        # ステップ数のカウントアップ
-        self.t += 1
-        
-        # --- 1. 重み (Weights) の更新 ---
-        self.m_w = self.beta1 * self.m_w + (1 - self.beta1) * dw
-        self.v_w = self.beta2 * self.v_w + (1 - self.beta2) * (dw ** 2)
-        m_w_hat = self.m_w / (1 - self.beta1 ** self.t)  # バイアス補正
-        v_w_hat = self.v_w / (1 - self.beta2 ** self.t)  # バイアス補正
-        # 勾配上昇法なので、プラス（+）で更新します
-        self.weights += self.learning_rate * m_w_hat / (np.sqrt(v_w_hat) + self.epsilon)
-
-        # --- 2. 可視バイアス (Visible Bias) の更新 ---
-        self.m_vb = self.beta1 * self.m_vb + (1 - self.beta1) * db
-        self.v_vb = self.beta2 * self.v_vb + (1 - self.beta2) * (db ** 2)
-        m_vb_hat = self.m_vb / (1 - self.beta1 ** self.t)
-        v_vb_hat = self.v_vb / (1 - self.beta2 ** self.t)
-        self.visible_bias += self.learning_rate * m_vb_hat / (np.sqrt(v_vb_hat) + self.epsilon)
-
-        # --- 3. 隠れバイアス (Hidden Bias) の更新 ---
-        self.m_hb = self.beta1 * self.m_hb + (1 - self.beta1) * dc
-        self.v_hb = self.beta2 * self.v_hb + (1 - self.beta2) * (dc ** 2)
-        m_hb_hat = self.m_hb / (1 - self.beta1 ** self.t)
-        v_hb_hat = self.v_hb / (1 - self.beta2 ** self.t)
-        self.hidden_bias += self.learning_rate * m_hb_hat / (np.sqrt(v_hb_hat) + self.epsilon)
 
     #評価指標：対数尤度関数（厳密計算）
     def log_likelihood(self, train_data):
@@ -440,9 +362,9 @@ epochs = CONFIG["num_epochs"]
 results_dict = {"epoch": np.arange(epochs)}
 
 # # データを3値化（-1, 0, 1）する
-# df = df.apply(discretize_to_ternary)
-# df = df.values  # DataFrameをNumPy配列に変換
-# print(df[:, 1])
+df = df.apply(discretize_to_ternary)
+df = df.values  # DataFrameをNumPy配列に変換
+print(df[:, 1])
 # print(df)
 
 
@@ -463,8 +385,13 @@ for alpha, beta in zip(CONFIG["alpha_list"], CONFIG["beta_max"]):
     #     (f"{alpha}_4", 4*beta)
     # ]  # βの条件をリストで定義
 
+    # beta_max / np.sqrt(num_visible + num_hidden)
+
     beta_conditions = [
-        (f"{alpha}_/4", beta/4)
+        (f"{alpha}_fix", np.sqrt(n_v + n_h)*0.1),
+        (f"{alpha}_/4", beta/4),
+        (f"{alpha}_1", beta),
+        (f"{alpha}_4", 4*beta)
     ]  # βの条件をリストで定義
 
     # 各モデルに対する3通りの初期化
@@ -475,8 +402,9 @@ for alpha, beta in zip(CONFIG["alpha_list"], CONFIG["beta_max"]):
         # print("ll_array.shape", ll_array.shape)
 
         for trial in range(CONFIG["TRIALS"]):
-            train_data = generate_train_data()
-            # train_data = df
+            print("\ntrial ", trial, end="")
+            # train_data = generate_train_data()
+            train_data = df
             model = DBRBM(
                 num_visible=CONFIG["num_visible"],
                 num_hidden=CONFIG["num_hidden"](alpha),
@@ -507,11 +435,8 @@ for alpha, beta in zip(CONFIG["alpha_list"], CONFIG["beta_max"]):
                     if (epoch+1) % prog == 0:
                         print("■", end="", flush=True)
 
-
-
-
             elif CONFIG["update_method"] == "sgd":
-                print("update_method: sgd")
+                # print("update_method: sgd")
                 batch_size = CONFIG["batch_size"] #: データセットのバッチサイズ
                 #n_samples : データセットのサンプル数
 
@@ -528,16 +453,15 @@ for alpha, beta in zip(CONFIG["alpha_list"], CONFIG["beta_max"]):
                         batch_data = shuffled_data[i : i + batch_size]
                         model.update_sgd (batch_data, cd_k=1)
                     
-                    
                     if(epoch % 1 == 0):
                         ll = model.log_likelihood(train_data)
                         ll_array[trial, epoch] = ll
                     
                     if (epoch+1) % prog == 0:
                         print("■", end="", flush=True)
-                # print()
+                print()
         ll_mean = np.mean(ll_array, axis=0)
-        print()
+        # print()
         # データを用意
         x = np.arange(epochs)
         y = ll_mean

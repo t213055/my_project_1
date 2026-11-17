@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # 1行目のCONFIG設定行をスキップして、2行目をヘッダーとしてCSVを読み込む
-df = pd.read_csv('results_toy_1.csv', skiprows=1)
+df = pd.read_csv('results_diabetes_2.csv', skiprows=1)
 
 # x軸のデータ（1列目: 'epoch'）を取得
 x = df['epoch']
@@ -13,14 +13,19 @@ alpha_values = [0.5, 1.0, 2.0]
 # グラフの描画設定
 linewidth = 5
 labelsize = 20
+# line_style = ["--", "-", ":"]
+line_style = ["--", ":", "-", "-."]
+
+# line_color = ["k", "b", "gray"]
+line_color = ["r", "g", "b", "k"]
 
 for i, alpha in enumerate(alpha_values):
     # 各alphaに対応する列のインデックスを計算
     # i=0 (alpha=0.5): 列1, 2, 3 (0始まりのインデックスを使用)
     # i=1 (alpha=1.0): 列4, 5, 6
     # i=2 (alpha=2.0): 列7, 8, 9
-    col_start = i * 3 + 1
-    col_end = col_start + 3
+    col_start = i * 4 + 1
+    col_end = col_start + 4
     
     # 描画対象の列名を取得
     y_cols = df.columns[col_start:col_end]
@@ -29,14 +34,14 @@ for i, alpha in enumerate(alpha_values):
     fig, ax = plt.subplots(figsize=(8, 6))
     
     # 対象の3列分、グラフに線を重ねて描画
-    for col in y_cols:
-        ax.plot(x, df[col], label=col, linewidth=linewidth)
+    for col, lc, ls in zip(y_cols, line_color, line_style):
+        ax.plot(x, df[col], label=col, linewidth=linewidth, linestyle=ls, color=lc)
         
     # グラフの体裁を整える
     ax.set_title(f'alpha={alpha}', fontsize=14, fontname="Meiryo")
     # ax.set_xlabel('Epoch', fontsize=12)
     # ax.set_ylabel('Log-Likelihood', fontsize=12)
-    ax.legend(title='Beta condition')
+    ax.legend(title='Beta condition', fontsize=20)
     ax.tick_params(axis='both', which='major', labelsize=labelsize)
     # ax.grid(True, linestyle='--', alpha=0.7)
     
