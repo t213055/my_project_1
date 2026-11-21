@@ -29,4 +29,4 @@ def find_transition_point(t, alpha):
     return sol.root
 
 # テスト実行
-print(f"t=2, alpha=0.45454545 の転移点 beta_c: {find_transition_point(2, 0.45454545):.5f}")
+print(f"t=2, alpha=1.0 の転移点 beta_c: {find_transition_point(2, 1.0):.5f}")

@@ -7,17 +7,15 @@ df = pd.read_csv('results_diabetes_2.csv', skiprows=1)
 # x軸のデータ（1列目: 'epoch'）を取得
 x = df['epoch']
 
+# mode選択
+mode = "3" # "4" , "3" , "2"
+
 # グラフを描画するための設定 (3つのalphaについてループで処理)
 alpha_values = [0.5, 1.0, 2.0]
 
 # グラフの描画設定
 linewidth = 5
 labelsize = 20
-# line_style = ["--", "-", ":"]
-line_style = ["--", ":", "-", "-."]
-
-# line_color = ["k", "b", "gray"]
-line_color = ["r", "g", "b", "k"]
 
 for i, alpha in enumerate(alpha_values):
     # 各alphaに対応する列のインデックスを計算
@@ -27,9 +25,26 @@ for i, alpha in enumerate(alpha_values):
     col_start = i * 4 + 1
     col_end = col_start + 4
     
-    # 描画対象の列名を取得
-    y_cols = df.columns[col_start:col_end]
-    
+    if mode == "4":
+        line_style = [ "-.", "--", "-", ":"]
+        line_color = ["k", "b", "g", "r"]
+        # 描画対象の列名を取得
+        y_cols = df.columns[col_start:col_end]
+
+    elif mode == "3":
+        line_style = ["--", "-", ":"]
+        line_color = ["b", "g", "r"]
+        # 描画対象の列名を取得し、'fix' を含む列を除外する
+        y_cols = [c for c in df.columns[col_start:col_end] if "fix" not in c]
+
+    else :
+        line_style = [ "-.", "-"]
+        line_color = ["k", "g"]
+        # 抽出したい2つのキーワードを指定（例として "A", "B" にしています）
+        keywords = ["_fix", "_1"]
+        # 各alphaの範囲の列から、keywordsのいずれかを含む列だけを抽出
+        y_cols = [c for c in df.columns[col_start:col_end] if any(k in c for k in keywords)]
+
     # 新しいキャンバス（画像）を作成
     fig, ax = plt.subplots(figsize=(8, 6))
     

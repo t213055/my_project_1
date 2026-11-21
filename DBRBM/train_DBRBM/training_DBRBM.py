@@ -13,67 +13,67 @@ from sklearn.datasets import load_diabetes
 from sklearn.datasets import load_wine
 
 # 実験設定の記述（人工データ）
-# CONFIG = {
-#     "num_visible": 10, 
-#     "alpha_list": [0.5, 1.0, 2.0],
-#     "lerning_rate": 0.01,   # ← 少し大きめにして学習速度の差を開かせる
-#     "num_epochs": 100,      # ← 収束までの過程が見える程度の長さに
-#     "cd_k": 1,
-#     "batch_size": 32,       # ← 標準的なバッチサイズで勾配を安定させる
-#     "TRIALS": 50,           # ← 乱数によるブレを消すため、最低10回は平均をとる
-#     # 教師モデルの設定
-#     "num_samples": 1000,    # ← データ数を増やして真の分布を安定させる
-#     "burn_in_steps": 1000,
-#     "teacher_beta": 3.0,
-#     "teacher_bias_scale": 0.5,
-#     "output_path": "results_toy_2.csv", 
-#     "update_method": "sgd" #"exact" or "adam" or "sgd"
-# }
+CONFIG = {
+    "num_visible": 10, 
+    "alpha_list": [0.5, 1.0, 2.0],
+    "lerning_rate": 0.01,   # ← 少し大きめにして学習速度の差を開かせる
+    "num_epochs": 100,      # ← 収束までの過程が見える程度の長さに
+    "cd_k": 1,
+    "batch_size": 32,       # ← 標準的なバッチサイズで勾配を安定させる
+    "TRIALS": 200,           # ← 乱数によるブレを消すため、最低10回は平均をとる
+    # 教師モデルの設定
+    "num_samples": 1000,    # ← データ数を増やして真の分布を安定させる
+    "burn_in_steps": 1000,
+    "teacher_beta": 3.0,
+    "teacher_bias_scale": 0.5,
+    "output_path": "results_toy_3.csv", 
+    "update_method": "sgd" #"exact" or "adam" or "sgd"
+}
 
 # if CONFIG["update_method"] == "exact":
 #     CONFIG["batch_size"] = CONFIG["num_samples"]  # exact法では、全データを使うためバッチサイズはデータ数と同じにする
 
 
-train_data = load_diabetes()  # データセットをロード
-# train_data = load_wine()
-X = train_data.data
-Y = train_data.target
-print("train_data.data.shape", X.shape)
-print("train_data.target.shape", Y.shape)
+# train_data = load_diabetes()  # データセットをロード
+# # train_data = load_wine()
+# X = train_data.data
+# Y = train_data.target
+# print("train_data.data.shape", X.shape)
+# print("train_data.target.shape", Y.shape)
 
-X = pd.DataFrame(X)  # データをDataFrameに変換
-Y = pd.DataFrame(Y)  # ターゲットをDataFrameに変換
-df = pd.concat([X,Y], axis=1)
-print("train_data.shape", df.shape)
-print(df.head()) #先頭から5行を表示
+# X = pd.DataFrame(X)  # データをDataFrameに変換
+# Y = pd.DataFrame(Y)  # ターゲットをDataFrameに変換
+# df = pd.concat([X,Y], axis=1)
+# print("train_data.shape", df.shape)
+# print(df.head()) #先頭から5行を表示
 
-print("columns", len(df.columns))
-print("rows", len(df))
-# 実験設定（実データ）
-CONFIG = {
-    "num_visible": len(df.columns), 
-    "alpha_list": [0.5, 1.0, 2.0],
-    "lerning_rate": 0.01,   # ← 少し大きめにして学習速度の差を開かせる
-    "num_epochs":100,      # ← 収束までの過程が見える程度の長さに
-    "cd_k": 1,
-    "batch_size": 16,       # ← 標準的なバッチサイズで勾配を安定させる
-    "TRIALS": 50,         # ← 乱数によるブレを消すため、最低10回は平均をとる
-    # 教師モデルの設定
-    "num_samples": len(df),    # ← データ数を増やして真の分布を安定させる
-    "burn_in_steps": 1000,
-    # "teacher_beta": 3.0,
-    # "teacher_bias_scale": 0.5,
-    "output_path": "results_diabetes_2.csv",
-    "update_method": "sgd"  # 勾配更新方法を指定（"sgd" または "adam"）
-}
+# print("columns", len(df.columns))
+# print("rows", len(df))
+# # 実験設定（実データ）
+# CONFIG = {
+#     "num_visible": len(df.columns), 
+#     "alpha_list": [0.5, 1.0, 2.0],
+#     "lerning_rate": 0.01,   # ← 少し大きめにして学習速度の差を開かせる
+#     "num_epochs":100,      # ← 収束までの過程が見える程度の長さに
+#     "cd_k": 1,
+#     "batch_size": 16,       # ← 標準的なバッチサイズで勾配を安定させる
+#     "TRIALS": 50,         # ← 乱数によるブレを消すため、最低10回は平均をとる
+#     # 教師モデルの設定
+#     "num_samples": len(df),    # ← データ数を増やして真の分布を安定させる
+#     "burn_in_steps": 1000,
+#     # "teacher_beta": 3.0,
+#     # "teacher_bias_scale": 0.5,
+#     "output_path": "results_diabetes_2.csv",
+#     "update_method": "sgd"  # 勾配更新方法を指定（"sgd" または "adam"）
+# }
 
 #可視変数はalphaの値によって変わるので、alphaの関数として記述している？
 #main文で、num_hidden = CONFIG["num_hidden"](alpha) のように使用する。
 CONFIG["num_hidden"] = lambda alpha: int(CONFIG["num_visible"] * alpha)  # 隠れ変数の数は可視変数の数＊alpha
 
 CONFIG["beta_max"] = [
-    # 1.66967 if alpha == 0.5 else
-    1.68779 if alpha == 0.5 else #diabetesデータセット使用時は可視変数が奇数になるので、転移点が少しずれる
+    1.66967 if alpha == 0.5 else
+    # 1.68779 if alpha == 0.5 else #diabetesデータセット使用時は可視変数が奇数になるので、転移点が少しずれる
     1.59095 if alpha == 1.0 else
     1.60357 if alpha == 2.0 else
     None
@@ -362,9 +362,9 @@ epochs = CONFIG["num_epochs"]
 results_dict = {"epoch": np.arange(epochs)}
 
 # # データを3値化（-1, 0, 1）する
-df = df.apply(discretize_to_ternary)
-df = df.values  # DataFrameをNumPy配列に変換
-print(df[:, 1])
+# df = df.apply(discretize_to_ternary)
+# df = df.values  # DataFrameをNumPy配列に変換
+# print(df[:, 1])
 # print(df)
 
 
@@ -403,8 +403,8 @@ for alpha, beta in zip(CONFIG["alpha_list"], CONFIG["beta_max"]):
 
         for trial in range(CONFIG["TRIALS"]):
             print("\ntrial ", trial, end="")
-            # train_data = generate_train_data()
-            train_data = df
+            train_data = generate_train_data()
+            # train_data = df
             model = DBRBM(
                 num_visible=CONFIG["num_visible"],
                 num_hidden=CONFIG["num_hidden"](alpha),
